@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CANB 강사 온보딩 대시보드</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #f0f2f5; color: #333; }
+
+    .header {
+      background: linear-gradient(135deg, #0F3460, #667eea);
+      color: white;
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header h1 { font-size: 20px; }
+    .header .teacher-name { font-size: 14px; opacity: 0.85; margin-top: 4px; }
+
+    .container { max-width: 960px; margin: 32px auto; padding: 0 16px; }
+
+    .progress-card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .progress-card h2 { font-size: 16px; color: #667eea; margin-bottom: 16px; }
+    .progress-bar-wrap { background: #e8eaf6; border-radius: 8px; height: 12px; margin-bottom: 8px; }
+    .progress-bar { background: linear-gradient(90deg, #667eea, #764ba2); height: 12px; border-radius: 8px; transition: width 0.5s; }
+    .progress-text { font-size: 13px; color: #888; }
+
+    .stats { display: flex; gap: 16px; margin-top: 16px; }
+    .stat-box {
+      flex: 1;
+      background: #f8f9ff;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+      border: 1px solid #e8eaf6;
+    }
+    .stat-box .value { font-size: 24px; font-weight: bold; color: #667eea; }
+    .stat-box .label { font-size: 12px; color: #888; margin-top: 4px; }
+
+    .module-card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .module-card h2 { font-size: 16px; color: #667eea; margin-bottom: 16px; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #f0f3ff; padding: 10px 12px; text-align: left; font-size: 12px; color: #555; }
+    td { padding: 12px; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+    tr:last-child td { border-bottom: none; }
+
+    .btn-video {
+      background: #4CAF50; color: white;
+      padding: 6px 12px; border-radius: 4px;
+      text-decoration: none; font-size: 12px;
+      margin-right: 6px; display: inline-block;
+    }
+    .btn-quiz {
+      background: #667eea; color: white;
+      padding: 6px 12px; border-radius: 4px;
+      text-decoration: none; font-size: 12px;
+      display: inline-block;
+    }
+    .btn-disabled {
+      background: #ccc; color: white;
+      padding: 6px 12px; border-radius: 4px;
+      font-size: 12px; display: inline-block;
+      cursor: not-allowed;
+    }
+    .badge-pass { background: #c8e6c9; color: #2e7d32; padding: 3px 8px; border-radius: 12px; font-size: 11px; }
+    .badge-fail { background: #ffcdd2; color: #c62828; padding: 3px 8px; border-radius: 12px; font-size: 11px; }
+    .badge-pending { background: #f5f5f5; color: #888; padding: 3px 8px; border-radius: 12px; font-size: 11px; }
+
+    .loading { text-align: center; padding: 60px; color: #888; }
+
+    /* 챗봇 */
+    .chatbot-btn {
+      position: fixed;
+      bottom: 24px; right: 24px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      border-radius: 50px;
+      padding: 14px 24px;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(102,126,234,0.4);
+      z-index: 100;
+    }
+    .chatbot-window {
+      display: none;
+      position: fixed;
+      bottom: 80px; right: 24px;
+      width: 360px;
+      height: 480px;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+      flex-direction: column;
+      z-index: 99;
+      overflow: hidden;
+    }
+    .chatbot-window.open { display: flex; }
+    .chat-header {
+      background: linear-gradient(135deg, #0F3460, #667eea);
+      color: white;
+      padding: 16px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .msg-bot, .msg-user {
+      max-width: 80%;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .msg-bot { background: #f0f3ff; color: #333; align-self: flex-start; }
+    .msg-user { background: #667eea; color: white; align-self: flex-end; }
+    .chat-input-wrap {
+      display: flex;
+      padding: 12px;
+      border-top: 1px solid #eee;
+      gap: 8px;
+    }
+    .chat-input-wrap input {
+      flex: 1;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      outline: none;
+    }
+    .chat-input-wrap button {
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>CANB 강사 온보딩 대시보드</h1>
+    <div class="teacher-name" id="teacherNameDisplay">로딩 중...</div>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="progress-card">
+    <h2>나의 학습 진행률</h2>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" id="progressBar" style="width:0%"></div>
+    </div>
+    <div class="progress-text" id="progressText">로딩 중...</div>
+    <div class="stats">
+      <div class="stat-box">
+        <div class="value" id="completedCount">-</div>
+        <div class="label">완료 모듈</div>
+      </div>
+      <div class="stat-box">
+        <div class="value" id="avgScore">-</div>
+        <div class="label">평균 점수</div>
+      </div>
+      <div class="stat-box">
+        <div class="value" id="totalModules">48</div>
+        <div class="label">전체 모듈</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="module-card">
+    <h2>학습 모듈 목록</h2>
+    <div id="moduleTable"><div class="loading">데이터 로딩 중...</div></div>
+  </div>
+
+</div>
+
+<!-- 챗봇 버튼 -->
+<button class="chatbot-btn" onclick="toggleChat()">AI 멘토에게 질문하기</button>
+
+<!-- 챗봇 창 -->
+<div class="chatbot-window" id="chatWindow">
+  <div class="chat-header">CANB AI 멘토</div>
+  <div class="chat-messages" id="chatMessages">
+    <div class="msg-bot">안녕하세요! CANB 온보딩 AI 멘토입니다. 궁금한 점을 질문해 주세요.</div>
+  </div>
+  <div class="chat-input-wrap">
+    <input type="text" id="chatInput" placeholder="질문을 입력하세요..." onkeydown="if(event.key==='Enter') sendMessage()">
+    <button onclick="sendMessage()">전송</button>
+  </div>
+</div>
+
+<script>
+  const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbytP0kq6WFnXyqL14wDQQaP9LyVnfmSTrtqb9wa2WGRPtyoOdHKc-bUs4iRyjsH6zlMpA/exec';
+
+  // URL에서 강사 ID 가져오기
+  const params = new URLSearchParams(window.location.search);
+  const teacherId = params.get('teacher') || 'TEST-001';
+
+  // 대시보드 데이터 로드
+  async function loadDashboard() {
+    try {
+      const res = await fetch(WEB_APP_URL + '?teacher=' + teacherId);
+      const data = await res.json();
+
+      document.getElementById('teacherNameDisplay').textContent = data.teacherName + ' 강사님';
+      document.getElementById('completedCount').textContent = data.completedCount;
+      document.getElementById('avgScore').textContent = data.avgScore + '점';
+
+      const pct = Math.round((data.completedCount / 48) * 100);
+      document.getElementById('progressBar').style.width = pct + '%';
+      document.getElementById('progressText').textContent = data.completedCount + ' / 48 모듈 완료 (' + pct + '%)';
+
+      renderModules(data.modules, data.progress);
+    } catch (e) {
+      document.getElementById('moduleTable').innerHTML = '<div class="loading">데이터를 불러올 수 없습니다. 잠시 후 다시 시도해주세요.</div>';
+    }
+  }
+
+  function renderModules(modules, progress) {
+    if (!modules || modules.length === 0) {
+      document.getElementById('moduleTable').innerHTML = '<div class="loading">모듈 데이터가 없습니다.</div>';
+      return;
+    }
+
+    const progressMap = {};
+    if (progress) {
+      progress.forEach(p => { progressMap[p.moduleId] = p; });
+    }
+
+    let html = '<table><thead><tr><th>ID</th><th>과목명</th><th>카테고리</th><th>퀴즈 결과</th><th>학습 링크</th></tr></thead><tbody>';
+
+    modules.forEach(mod => {
+      const p = progressMap[mod.moduleId] || {};
+      const quizResult = p.quizResult
+        ? (p.quizResult.includes('Pass')
+            ? '<span class="badge-pass">Pass ' + p.score + '점</span>'
+            : '<span class="badge-fail">Fail ' + p.score + '점</span>')
+        : '<span class="badge-pending">미응시</span>';
+
+      const videoBtn = mod.videoUrl
+        ? '<a href="' + mod.videoUrl + '" target="_blank" class="btn-video">[영상 시청]</a>'
+        : '';
+      const quizBtn = mod.quizUrl
+        ? '<a href="' + mod.quizUrl + '" target="_blank" class="btn-quiz">[퀴즈 응시]</a>'
+        : '';
+      const linkCell = (videoBtn || quizBtn) ? videoBtn + quizBtn : '<span class="btn-disabled">준비 중</span>';
+
+      html += '<tr><td>' + mod.moduleId + '</td><td><strong>' + mod.title + '</strong></td><td>' + mod.category + '</td><td>' + quizResult + '</td><td>' + linkCell + '</td></tr>';
+    });
+
+    html += '</tbody></table>';
+    document.getElementById('moduleTable').innerHTML = html;
+  }
+
+  // 챗봇
+  function toggleChat() {
+    const win = document.getElementById('chatWindow');
+    win.classList.toggle('open');
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    addMessage(msg, 'user');
+    input.value = '';
+    addMessage('...', 'bot');
+
+    try {
+      const res = await fetch(WEB_APP_URL + '?action=chat&message=' + encodeURIComponent(msg) + '&teacher=' + teacherId);
+      const data = await res.json();
+      removeLastBot();
+      addMessage(data.reply || '답변을 가져올 수 없습니다.', 'bot');
+    } catch (e) {
+      removeLastBot();
+      addMessage('연결에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.', 'bot');
+    }
+  }
+
+  function addMessage(text, type) {
+    const div = document.createElement('div');
+    div.className = type === 'user' ? 'msg-user' : 'msg-bot';
+    div.textContent = text;
+    document.getElementById('chatMessages').appendChild(div);
+    document.getElementById('chatMessages').scrollTop = 999999;
+  }
+
+  function removeLastBot() {
+    const msgs = document.getElementById('chatMessages');
+    const bots = msgs.querySelectorAll('.msg-bot');
+    if (bots.length > 0) bots[bots.length - 1].remove();
+  }
+
+  loadDashboard();
+</script>
+
+</body>
+</html>
