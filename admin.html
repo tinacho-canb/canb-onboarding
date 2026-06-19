@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CANB 관리자 — 모의강의 결과 기입</title>
+<style>
+  :root{
+    --navy:#14275c; --navy-deep:#0d1b3e; --ink:#1c2540;
+    --teal:#0bb8cf; --teal-d:#0894a8;
+    --lime:#6db33f; --lime-bg:#eaf5e1;
+    --amber:#e8961e; --amber-bg:#fdf2dd;
+    --red:#d8475f; --red-bg:#fbe6ea;
+    --lock:#9aa3b8; --lock-bg:#eef0f5;
+    --bg:#f4f6fb; --card:#fff; --line:#e3e7f0; --muted:#6b7488;
+    --shadow:0 1px 2px rgba(20,39,92,.06),0 6px 20px rgba(20,39,92,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.5; -webkit-font-smoothing:antialiased}
+  button{font-family:inherit; cursor:pointer; border:none}
+  button:disabled{cursor:not-allowed; opacity:.6}
+  .wrap{max-width:1060px; margin:0 auto; padding:26px 18px 80px}
+
+  /* 로그인 */
+  .login-bg{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
+    background:linear-gradient(135deg,var(--navy),var(--navy-deep))}
+  .login-card{width:100%; max-width:380px; background:#fff; border-radius:18px; padding:34px 30px 30px; box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  .login-card .eyebrow{font-size:11px; letter-spacing:.16em; color:var(--teal-d); text-transform:uppercase; font-weight:700}
+  .login-card h1{margin:6px 0 2px; font-size:21px; color:var(--navy); font-weight:800}
+  .login-card p.lead{margin:0 0 22px; font-size:13.5px; color:var(--muted)}
+  .field{margin-bottom:14px}
+  .field label{display:block; font-size:12.5px; font-weight:600; margin-bottom:6px}
+  .field input{width:100%; border:1px solid var(--line); border-radius:10px; padding:11px 13px; font-size:14px; outline:none; font-family:inherit}
+  .field input:focus{border-color:var(--teal); box-shadow:0 0 0 3px rgba(11,184,207,.12)}
+  .login-btn{width:100%; margin-top:6px; background:var(--navy); color:#fff; font-weight:700; font-size:15px; padding:12px; border-radius:11px}
+  .login-btn:hover{background:#1d3576}
+  .login-err{display:none; margin-top:14px; background:var(--red-bg); border:1px solid #f0c4cd; color:#9c2740; border-radius:10px; padding:10px 13px; font-size:13px}
+  .login-err.show{display:block}
+
+  /* 헤더 */
+  header.top{background:linear-gradient(135deg,var(--navy),var(--navy-deep)); color:#fff; border-radius:16px;
+    padding:22px 26px; box-shadow:var(--shadow); display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap}
+  header.top h1{margin:0; font-size:20px; font-weight:800}
+  header.top .eyebrow{font-size:11px; letter-spacing:.14em; color:#8fa6d6; text-transform:uppercase}
+  header.top .who{font-size:13px; color:#cdd7ef}
+  .logout{background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.18); color:#cdd7ef; font-size:12px; font-weight:600; padding:7px 13px; border-radius:8px}
+  .logout:hover{background:rgba(255,255,255,.18); color:#fff}
+
+  .bar{display:flex; align-items:center; justify-content:space-between; margin:24px 2px 12px; gap:10px}
+  .bar h2{margin:0; font-size:16px; color:var(--navy); font-weight:800}
+  .bar .sub{font-size:12.5px; color:var(--muted)}
+  .refresh{background:var(--lock-bg); color:var(--navy); font-size:12.5px; font-weight:600; padding:7px 13px; border-radius:8px}
+
+  /* 예약 카드 */
+  .card{background:var(--card); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); padding:16px 18px; margin-bottom:12px}
+  .card.pending{border-left:4px solid var(--amber)}
+  .card.done{border-left:4px solid var(--lime)}
+  .row1{display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap}
+  .tname{font-size:15px; font-weight:800; color:var(--ink)}
+  .meta{font-size:12.5px; color:var(--muted); margin-top:3px}
+  .badge{font-size:11px; font-weight:700; padding:3px 10px; border-radius:99px; white-space:nowrap}
+  .b-pending{background:var(--amber-bg); color:var(--amber)}
+  .b-done{background:var(--lime-bg); color:var(--lime)}
+  .form{display:grid; grid-template-columns:150px 1fr 150px auto; gap:10px; align-items:end; margin-top:14px}
+  .form label{display:block; font-size:11.5px; color:var(--muted); font-weight:600; margin-bottom:5px}
+  .form select, .form input{width:100%; border:1px solid var(--line); border-radius:9px; padding:9px 11px; font-size:13.5px; font-family:inherit; outline:none}
+  .form select:focus, .form input:focus{border-color:var(--teal)}
+  .save{background:var(--teal); color:#fff; font-weight:700; font-size:13.5px; padding:10px 18px; border-radius:9px; white-space:nowrap}
+  .save:hover{background:var(--teal-d)}
+  @media (max-width:680px){ .form{grid-template-columns:1fr 1fr} .save{grid-column:1 / -1} }
+
+  .state{padding:54px 20px; text-align:center; color:var(--muted)}
+  .spinner{width:30px; height:30px; border:3px solid var(--line); border-top-color:var(--teal); border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 14px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .empty{background:#fff; border:1px dashed var(--line); border-radius:12px; padding:36px; text-align:center; color:var(--muted)}
+  .err{background:var(--red-bg); border:1px solid #f0c4cd; color:#9c2740; border-radius:12px; padding:18px 20px}
+  .toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px); background:var(--ink); color:#fff; padding:12px 20px; border-radius:10px; font-size:13.5px; box-shadow:0 8px 30px rgba(0,0,0,.25); opacity:0; pointer-events:none; transition:.25s; z-index:60}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+  .toast.bad{background:var(--red)}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+  :focus-visible{outline:2px solid var(--teal); outline-offset:2px}
+</style>
+</head>
+<body>
+<div id="app"><div class="state"><div class="spinner"></div>불러오는 중…</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbytP0kq6WFnXyqL14wDQQaP9LyVnfmSTrtqb9wa2WGRPtyoOdHKc-bUs4iRyjsH6zlMpA/exec";
+const RESULT_OPTIONS = ["우수", "양호", "보통", "재평가"];
+
+let AUTH = null;   // { email, password, name }
+const SK = "canb_admin_session";
+let _mem = null;
+function saveSession(s){ try{ sessionStorage.setItem(SK, JSON.stringify(s)); }catch(e){} _mem=s; }
+function readSession(){ try{ var r=sessionStorage.getItem(SK); if(r) return JSON.parse(r); }catch(e){} return _mem; }
+function clearSession(){ try{ sessionStorage.removeItem(SK); }catch(e){} _mem=null; }
+
+async function api(params){
+  const u = new URL(WEBAPP_URL);
+  Object.entries(params).forEach(([k,v]) => u.searchParams.set(k, v));
+  const res = await fetch(u.toString(), { method:"GET" });
+  if(!res.ok) throw new Error("HTTP " + res.status);
+  return res.json();
+}
+
+function init(){
+  const s = readSession();
+  if(s && s.email){ AUTH = s; loadReservations(); }
+  else showLogin();
+}
+
+/* 로그인 (super 전용) */
+function showLogin(){
+  clearSession(); AUTH = null;
+  document.getElementById("app").innerHTML = `
+  <div class="login-bg"><div class="login-card">
+    <div class="eyebrow">CANB Admin</div>
+    <h1>관리자 로그인</h1>
+    <p class="lead">총괄 관리자 계정으로 로그인하세요.</p>
+    <div class="field"><label for="le">이메일</label>
+      <input id="le" type="email" autocomplete="username" placeholder="name@example.com"
+        onkeydown="if(event.key==='Enter')document.getElementById('lp').focus()"></div>
+    <div class="field"><label for="lp">비밀번호</label>
+      <input id="lp" type="password" autocomplete="current-password" placeholder="비밀번호"
+        onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <button class="login-btn" id="lb" onclick="doLogin()">로그인</button>
+    <div class="login-err" id="lerr"></div>
+  </div></div>`;
+  setTimeout(()=>{ var e=document.getElementById("le"); if(e) e.focus(); }, 50);
+}
+function loginErr(m){ var el=document.getElementById("lerr"); if(el){ el.textContent=m; el.classList.add("show"); } }
+
+async function doLogin(){
+  const email=(document.getElementById("le").value||"").trim();
+  const pw=document.getElementById("lp").value||"";
+  const btn=document.getElementById("lb");
+  document.getElementById("lerr").classList.remove("show");
+  if(!email||!pw){ loginErr("이메일과 비밀번호를 입력하세요."); return; }
+  btn.disabled=true; btn.textContent="확인 중…";
+  try{
+    const r = await api({ action:"login", email, password:pw });
+    if(!r || !r.ok){ loginErr((r&&r.message)||"로그인 정보가 올바르지 않습니다."); btn.disabled=false; btn.textContent="로그인"; return; }
+    if(r.role !== "super"){ loginErr("이 페이지는 총괄 관리자 전용입니다."); btn.disabled=false; btn.textContent="로그인"; return; }
+    AUTH = { email, password:pw, name:r.teacherName || "" };
+    saveSession(AUTH);
+    loadReservations();
+  }catch(e){
+    loginErr("서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    btn.disabled=false; btn.textContent="로그인"; console.error(e);
+  }
+}
+function logout(){ clearSession(); AUTH=null; showLogin(); }
+
+/* 예약 목록 */
+async function loadReservations(){
+  document.getElementById("app").innerHTML = `<div class="wrap"><div class="state"><div class="spinner"></div>예약 목록을 불러오는 중…</div></div>`;
+  try{
+    const r = await api({ action:"getReservations", email:AUTH.email, password:AUTH.password });
+    if(!r || !r.ok){
+      if(r && /권한/.test(r.message||"")){ logout(); return; }
+      throw new Error((r&&r.message)||"불러오기 실패");
+    }
+    if(r.adminName && !AUTH.name){ AUTH.name=r.adminName; saveSession(AUTH); }
+    render(r.reservations || []);
+  }catch(e){
+    document.getElementById("app").innerHTML = `<div class="wrap"><div class="err"><b>예약 목록을 불러오지 못했습니다.</b><br><span style="color:#6b7488">${esc(String(e.message||e))}</span></div>
+      <div style="margin-top:14px"><button class="logout" style="background:#eef0f5;color:#14275c" onclick="logout()">로그인으로</button></div></div>`;
+    console.error(e);
+  }
+}
+
+function isPending(result){
+  var r=String(result||"");
+  return !r || r.indexOf("예약완료")===0 || r.indexOf("대기")>=0;
+}
+
+function render(list){
+  const pending = list.filter(x=>isPending(x.result)).length;
+  const cards = list.length ? list.map(renderCard).join("") :
+    `<div class="empty">아직 예약된 모의강의가 없습니다.</div>`;
+
+  document.getElementById("app").innerHTML = `
+  <div class="wrap">
+    <header class="top">
+      <div>
+        <div class="eyebrow">CANB Admin</div>
+        <h1>모의강의 결과 기입</h1>
+        <div class="who">${esc(AUTH.name||AUTH.email)} · 총괄 관리자</div>
+      </div>
+      <button class="logout" onclick="logout()">로그아웃</button>
+    </header>
+
+    <div class="bar">
+      <div><h2>예약 목록</h2><span class="sub">미평가 ${pending}건 · 전체 ${list.length}건 (미평가가 위에 표시됩니다)</span></div>
+      <button class="refresh" onclick="loadReservations()">새로고침</button>
+    </div>
+    ${cards}
+  </div>`;
+}
+
+function renderCard(x){
+  const pending = isPending(x.result);
+  const rid = esc(x.reservationId);
+  const opts = ['<option value="">결과 선택</option>']
+    .concat(RESULT_OPTIONS.map(o=>`<option value="${o}"${x.result===o?' selected':''}>${o}</option>`)).join("");
+  return `
+  <div class="card ${pending?'pending':'done'}">
+    <div class="row1">
+      <div>
+        <div class="tname">${esc(x.teacherName)} <span style="font-size:12px;color:#9aa3b8;font-weight:500">(${esc(x.teacherId)})</span></div>
+        <div class="meta">${esc(x.when)} · ${esc(x.place)} · 예약ID ${rid}</div>
+      </div>
+      <span class="badge ${pending?'b-pending':'b-done'}">${pending?'미평가':esc(x.result)}</span>
+    </div>
+    <div class="form">
+      <div><label>결과</label><select id="res-${rid}">${opts}</select></div>
+      <div><label>피드백 요약</label><input id="fb-${rid}" value="${esc(x.feedback)}" placeholder="간단한 피드백"></div>
+      <div><label>평가자</label><input id="ev-${rid}" value="${esc(x.evaluator||AUTH.name||'')}"></div>
+      <button class="save" onclick="saveResult('${rid}', this)">저장</button>
+    </div>
+  </div>`;
+}
+
+async function saveResult(rid, btn){
+  const result = document.getElementById("res-"+rid).value;
+  const feedback = document.getElementById("fb-"+rid).value;
+  const evaluator = document.getElementById("ev-"+rid).value;
+  if(!result){ toast("결과를 선택하세요.", true); return; }
+
+  btn.disabled=true; const t0=btn.textContent; btn.textContent="저장 중…";
+  try{
+    const r = await api({ action:"recordResult", email:AUTH.email, password:AUTH.password,
+                          reservation:rid, result, feedback, evaluator });
+    if(!r || !r.ok){
+      if(r && /권한/.test(r.message||"")){ toast("권한이 없습니다. 다시 로그인하세요.", true); setTimeout(logout, 1200); return; }
+      toast((r&&r.message)||"저장 실패", true); btn.disabled=false; btn.textContent=t0; return;
+    }
+    toast(result==="재평가" ? "저장 완료 — 재평가 안내 메일을 발송했습니다." : "저장 완료");
+    await loadReservations();
+  }catch(e){ toast("저장 중 오류가 발생했습니다.", true); btn.disabled=false; btn.textContent=t0; console.error(e); }
+}
+
+/* 유틸 */
+function esc(s){ return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+let toastTimer;
+function toast(msg, bad){
+  const el=document.getElementById("toast");
+  el.textContent=msg; el.className="toast show"+(bad?" bad":"");
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.className="toast"+(bad?" bad":""), 2800);
+}
+
+init();
+</script>
+</body>
+</html>
