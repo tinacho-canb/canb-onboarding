@@ -1,325 +1,548 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CANB 강사 온보딩 대시보드</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; background: #f0f2f5; color: #333; }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CANB 강사 온보딩</title>
+<style>
+  :root{
+    --navy:#14275c; --navy-deep:#0d1b3e; --ink:#1c2540;
+    --teal:#0bb8cf; --teal-d:#0894a8;
+    --lime:#6db33f; --lime-bg:#eaf5e1;
+    --amber:#e8961e; --amber-bg:#fdf2dd;
+    --red:#d8475f; --red-bg:#fbe6ea;
+    --lock:#9aa3b8; --lock-bg:#eef0f5;
+    --bg:#f4f6fb; --card:#ffffff; --line:#e3e7f0; --muted:#6b7488;
+    --shadow:0 1px 2px rgba(20,39,92,.06),0 6px 20px rgba(20,39,92,.06);
+    --r:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit}
+  button{font-family:inherit; cursor:pointer; border:none}
+  button:disabled{cursor:not-allowed}
+  .wrap{max-width:1120px; margin:0 auto; padding:28px 20px 120px}
 
-    .header {
-      background: linear-gradient(135deg, #0F3460, #667eea);
-      color: white;
-      padding: 20px 32px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .header h1 { font-size: 20px; }
-    .header .teacher-name { font-size: 14px; opacity: 0.85; margin-top: 4px; }
+  /* ===== 로그인 ===== */
+  .login-bg{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
+    background:linear-gradient(135deg,var(--navy) 0%,var(--navy-deep) 100%)}
+  .login-card{width:100%; max-width:380px; background:#fff; border-radius:18px; padding:34px 30px 30px;
+    box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  .login-card .eyebrow{font-size:11px; letter-spacing:.16em; color:var(--teal-d); text-transform:uppercase; font-weight:700}
+  .login-card h1{margin:6px 0 2px; font-size:22px; color:var(--navy); font-weight:800}
+  .login-card p.lead{margin:0 0 22px; font-size:13.5px; color:var(--muted)}
+  .field{margin-bottom:14px}
+  .field label{display:block; font-size:12.5px; font-weight:600; color:var(--ink); margin-bottom:6px}
+  .field input{width:100%; border:1px solid var(--line); border-radius:10px; padding:11px 13px; font-size:14px; outline:none; font-family:inherit}
+  .field input:focus{border-color:var(--teal); box-shadow:0 0 0 3px rgba(11,184,207,.12)}
+  .login-btn{width:100%; margin-top:6px; background:var(--navy); color:#fff; font-weight:700; font-size:15px;
+    padding:12px; border-radius:11px}
+  .login-btn:hover{background:#1d3576}
+  .login-err{display:none; margin-top:14px; background:var(--red-bg); border:1px solid #f0c4cd; color:#9c2740;
+    border-radius:10px; padding:10px 13px; font-size:13px}
+  .login-err.show{display:block}
+  .login-foot{margin-top:18px; font-size:12px; color:var(--muted); text-align:center}
 
-    .container { max-width: 960px; margin: 32px auto; padding: 0 16px; }
+  /* ===== 헤더 / 요약 ===== */
+  header.top{
+    background:linear-gradient(135deg,var(--navy) 0%,var(--navy-deep) 100%);
+    color:#fff; border-radius:18px; padding:26px 28px; box-shadow:var(--shadow);
+    display:flex; flex-wrap:wrap; gap:24px; align-items:center; justify-content:space-between; position:relative;
+  }
+  .hello{display:flex; flex-direction:column; gap:4px}
+  .hello .eyebrow{font-size:12px; letter-spacing:.14em; color:#8fa6d6; text-transform:uppercase}
+  .hello h1{margin:0; font-size:24px; font-weight:800}
+  .hello h1 small{font-weight:500; color:#aeb9d6; font-size:15px}
+  .logout{position:absolute; top:16px; right:18px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.18);
+    color:#cdd7ef; font-size:12px; font-weight:600; padding:6px 12px; border-radius:8px}
+  .logout:hover{background:rgba(255,255,255,.18); color:#fff}
+  .stats{display:flex; gap:14px; flex-wrap:wrap}
+  .stat{background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12);
+    border-radius:12px; padding:12px 18px; min-width:104px}
+  .stat .v{font-size:22px; font-weight:800; line-height:1.1}
+  .stat .k{font-size:12px; color:#aeb9d6; margin-top:2px}
+  .progress-line{width:100%; margin-top:18px}
+  .progress-line .bar{height:8px; background:rgba(255,255,255,.14); border-radius:99px; overflow:hidden}
+  .progress-line .bar i{display:block; height:100%; background:linear-gradient(90deg,var(--teal),var(--lime)); border-radius:99px; transition:width .5s}
+  .progress-line .lab{font-size:12px; color:#aeb9d6; margin-top:6px}
 
-    .progress-card {
-      background: white;
-      border-radius: 12px;
-      padding: 24px;
-      margin-bottom: 24px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
-    .progress-card h2 { font-size: 16px; color: #667eea; margin-bottom: 16px; }
-    .progress-bar-wrap { background: #e8eaf6; border-radius: 8px; height: 12px; margin-bottom: 8px; }
-    .progress-bar { background: linear-gradient(90deg, #667eea, #764ba2); height: 12px; border-radius: 8px; transition: width 0.5s; }
-    .progress-text { font-size: 13px; color: #888; }
+  /* ===== 섹션 ===== */
+  section.block{margin-top:30px}
+  .block-head{display:flex; align-items:baseline; gap:12px; margin:0 2px 14px}
+  .block-head h2{margin:0; font-size:17px; font-weight:800; color:var(--navy)}
+  .block-head .sub{font-size:13px; color:var(--muted)}
+  .accent{width:4px; height:18px; background:var(--lime); border-radius:2px; display:inline-block; margin-right:8px; vertical-align:-3px}
 
-    .stats { display: flex; gap: 16px; margin-top: 16px; }
-    .stat-box {
-      flex: 1;
-      background: #f8f9ff;
-      border-radius: 8px;
-      padding: 16px;
-      text-align: center;
-      border: 1px solid #e8eaf6;
-    }
-    .stat-box .value { font-size: 24px; font-weight: bold; color: #667eea; }
-    .stat-box .label { font-size: 12px; color: #888; margin-top: 4px; }
+  /* ===== 카테고리 그룹 ===== */
+  .cat{background:var(--card); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow); margin-bottom:14px; overflow:hidden}
+  .cat-head{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px; cursor:pointer; user-select:none}
+  .cat-head:hover{background:#fafbfe}
+  .cat-title{display:flex; align-items:center; gap:10px; font-weight:700; color:var(--navy); font-size:15px}
+  .cat-count{font-size:12px; color:var(--muted); font-weight:500}
+  .cat-meta{display:flex; align-items:center; gap:14px}
+  .mini-bar{width:120px; height:6px; background:var(--lock-bg); border-radius:99px; overflow:hidden}
+  .mini-bar i{display:block; height:100%; background:var(--lime); border-radius:99px}
+  .chev{color:var(--lock); transition:transform .2s; font-size:13px}
+  .cat.open .chev{transform:rotate(90deg)}
+  .cat-body{display:none; padding:4px 14px 16px; border-top:1px solid var(--line)}
+  .cat.open .cat-body{display:grid; gap:10px; grid-template-columns:repeat(auto-fill,minmax(330px,1fr))}
 
-    .module-card {
-      background: white;
-      border-radius: 12px;
-      padding: 24px;
-      margin-bottom: 24px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
-    .module-card h2 { font-size: 16px; color: #667eea; margin-bottom: 16px; }
+  /* ===== 모듈 카드 ===== */
+  .mod{border:1px solid var(--line); border-radius:12px; padding:13px 14px; background:#fff; position:relative}
+  .mod.done{border-color:var(--lime); background:linear-gradient(0deg,var(--lime-bg),#fff 60%)}
+  .mod-top{display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:11px}
+  .mod-id{font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums}
+  .mod-title{font-weight:700; font-size:14px; margin:2px 0 0; color:var(--ink)}
+  .mod-target{display:inline-block; margin-top:5px; font-size:11px; color:var(--teal-d); background:#e6f8fb; border:1px solid #c5edf3; padding:1px 8px; border-radius:99px}
+  .ribbon{font-size:11px; font-weight:700; color:#fff; background:var(--lime); padding:3px 9px; border-radius:99px; white-space:nowrap}
 
-    table { width: 100%; border-collapse: collapse; }
-    th { background: #f0f3ff; padding: 10px 12px; text-align: left; font-size: 12px; color: #555; }
-    td { padding: 12px; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
-    tr:last-child td { border-bottom: none; }
+  .steps{display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px}
+  .step{border:1px solid var(--line); border-radius:9px; padding:7px 6px 8px; text-align:center; background:#fbfcfe; min-height:60px; display:flex; flex-direction:column; align-items:center; justify-content:space-between; gap:5px}
+  .step .lab{font-size:10.5px; color:var(--muted); font-weight:600; display:flex; align-items:center; gap:3px}
+  .step-btn{width:100%; font-size:11px; font-weight:700; padding:5px 4px; border-radius:7px; line-height:1.2}
+  .b-open{background:var(--navy); color:#fff}
+  .b-open:hover{background:#1d3576}
+  .b-do{background:var(--teal); color:#fff}
+  .b-do:hover{background:var(--teal-d)}
+  .b-lock{background:var(--lock-bg); color:var(--lock)}
+  .b-done{background:var(--lime-bg); color:var(--lime); border:1px solid #cfe8bd}
+  .pill{font-size:10.5px; font-weight:700; padding:3px 7px; border-radius:99px; white-space:nowrap}
+  .p-pass{background:var(--lime-bg); color:var(--lime)}
+  .p-retry{background:var(--red-bg); color:var(--red)}
+  .p-wait{background:var(--lock-bg); color:var(--lock)}
 
-    .btn-video {
-      background: #4CAF50; color: white;
-      padding: 6px 12px; border-radius: 4px;
-      text-decoration: none; font-size: 12px;
-      margin-right: 6px; display: inline-block;
-    }
-    .btn-quiz {
-      background: #667eea; color: white;
-      padding: 6px 12px; border-radius: 4px;
-      text-decoration: none; font-size: 12px;
-      display: inline-block;
-    }
-    .btn-disabled {
-      background: #ccc; color: white;
-      padding: 6px 12px; border-radius: 4px;
-      font-size: 12px; display: inline-block;
-      cursor: not-allowed;
-    }
-    .badge-pass { background: #c8e6c9; color: #2e7d32; padding: 3px 8px; border-radius: 12px; font-size: 11px; }
-    .badge-fail { background: #ffcdd2; color: #c62828; padding: 3px 8px; border-radius: 12px; font-size: 11px; }
-    .badge-pending { background: #f5f5f5; color: #888; padding: 3px 8px; border-radius: 12px; font-size: 11px; }
+  /* ===== 예약 ===== */
+  .book-card{background:var(--card); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow); padding:20px 22px}
+  .book-locked{display:flex; gap:14px; align-items:center; color:var(--muted)}
+  .book-locked .ic{width:42px; height:42px; border-radius:11px; background:var(--lock-bg); display:flex; align-items:center; justify-content:center; font-size:20px; flex:0 0 auto}
+  .mybooking{display:flex; flex-wrap:wrap; gap:14px; align-items:center; background:var(--lime-bg); border:1px solid #cfe8bd; border-radius:12px; padding:16px 18px}
+  .mybooking .ic{font-size:22px}
+  .mybooking b{color:var(--navy)}
+  .place-group{margin-top:14px}
+  .place-group h4{margin:0 0 8px; font-size:13px; color:var(--navy); font-weight:700; display:flex; align-items:center; gap:8px}
+  .place-group h4 .n{font-size:11px; color:var(--muted); font-weight:500}
+  .slots{display:grid; gap:8px; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); max-height:260px; overflow:auto; padding-right:4px}
+  .slot{border:1px solid var(--line); border-radius:10px; padding:10px 12px; display:flex; align-items:center; justify-content:space-between; gap:8px; background:#fff}
+  .slot .w{font-size:12.5px; font-weight:600}
+  .slot .c{font-size:11px; color:var(--muted)}
+  .slot button{font-size:12px; font-weight:700; padding:6px 12px; border-radius:8px; background:var(--lime); color:#fff}
+  .slot button:hover{background:#5e9e34}
+  .slot.full{opacity:.55}
+  .slot.full button{background:var(--lock-bg); color:var(--lock)}
+  .toggle-full{margin-top:8px; font-size:12px; color:var(--teal-d); background:none; padding:4px 0; font-weight:600}
 
-    .loading { text-align: center; padding: 60px; color: #888; }
+  /* ===== 상태 ===== */
+  .state{padding:60px 20px; text-align:center; color:var(--muted)}
+  .spinner{width:30px; height:30px; border:3px solid var(--line); border-top-color:var(--teal); border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 14px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .err{background:var(--red-bg); border:1px solid #f0c4cd; color:#9c2740; border-radius:12px; padding:18px 20px; margin-top:20px}
+  .err code{background:#fff; padding:1px 6px; border-radius:5px; font-size:12px}
+  .toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px); background:var(--ink); color:#fff; padding:12px 20px; border-radius:10px; font-size:13.5px; box-shadow:0 8px 30px rgba(0,0,0,.25); opacity:0; pointer-events:none; transition:.25s; z-index:60}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+  .toast.bad{background:var(--red)}
 
-    /* 챗봇 */
-    .chatbot-btn {
-      position: fixed;
-      bottom: 24px; right: 24px;
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      color: white;
-      border: none;
-      border-radius: 50px;
-      padding: 14px 24px;
-      font-size: 14px;
-      cursor: pointer;
-      box-shadow: 0 4px 16px rgba(102,126,234,0.4);
-      z-index: 100;
-    }
-    .chatbot-window {
-      display: none;
-      position: fixed;
-      bottom: 80px; right: 24px;
-      width: 360px;
-      height: 480px;
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
-      flex-direction: column;
-      z-index: 99;
-      overflow: hidden;
-    }
-    .chatbot-window.open { display: flex; }
-    .chat-header {
-      background: linear-gradient(135deg, #0F3460, #667eea);
-      color: white;
-      padding: 16px;
-      font-size: 14px;
-      font-weight: bold;
-    }
-    .chat-messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .msg-bot, .msg-user {
-      max-width: 80%;
-      padding: 10px 14px;
-      border-radius: 12px;
-      font-size: 13px;
-      line-height: 1.5;
-    }
-    .msg-bot { background: #f0f3ff; color: #333; align-self: flex-start; }
-    .msg-user { background: #667eea; color: white; align-self: flex-end; }
-    .chat-input-wrap {
-      display: flex;
-      padding: 12px;
-      border-top: 1px solid #eee;
-      gap: 8px;
-    }
-    .chat-input-wrap input {
-      flex: 1;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 8px 12px;
-      font-size: 13px;
-      outline: none;
-    }
-    .chat-input-wrap button {
-      background: #667eea;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 8px 16px;
-      font-size: 13px;
-      cursor: pointer;
-    }
-  </style>
+  /* ===== AI 멘토 (로그인 후에만 노출) ===== */
+  #mentor-fab{position:fixed; right:22px; bottom:22px; width:58px; height:58px; border-radius:50%; background:linear-gradient(135deg,var(--teal),var(--navy)); color:#fff; font-size:24px; box-shadow:0 8px 24px rgba(20,39,92,.35); z-index:50; display:none; align-items:center; justify-content:center}
+  body.authed #mentor-fab{display:flex}
+  #mentor{position:fixed; right:22px; bottom:90px; width:360px; max-width:calc(100vw - 32px); height:480px; max-height:calc(100vh - 130px); background:#fff; border:1px solid var(--line); border-radius:16px; box-shadow:0 16px 48px rgba(20,39,92,.25); z-index:51; display:none; flex-direction:column; overflow:hidden}
+  #mentor.open{display:flex}
+  .m-head{background:var(--navy); color:#fff; padding:13px 16px; display:flex; align-items:center; justify-content:space-between}
+  .m-head b{font-size:14px}
+  .m-head .s{font-size:11px; color:#9fb0d8}
+  .m-close{background:none; color:#fff; font-size:18px; line-height:1; padding:4px 6px; opacity:.8}
+  .m-body{flex:1; overflow:auto; padding:14px; display:flex; flex-direction:column; gap:10px; background:#f7f9fc}
+  .msg{max-width:82%; padding:9px 12px; border-radius:13px; font-size:13.5px; white-space:pre-wrap; word-break:break-word}
+  .msg.me{align-self:flex-end; background:var(--navy); color:#fff; border-bottom-right-radius:4px}
+  .msg.bot{align-self:flex-start; background:#fff; border:1px solid var(--line); border-bottom-left-radius:4px}
+  .msg.bot img{max-width:100%; border-radius:8px; margin-top:6px; display:block}
+  .m-foot{display:flex; gap:8px; padding:10px; border-top:1px solid var(--line); background:#fff}
+  .m-foot input{flex:1; border:1px solid var(--line); border-radius:10px; padding:9px 12px; font-size:13.5px; outline:none; font-family:inherit}
+  .m-foot input:focus{border-color:var(--teal)}
+  .m-foot button{background:var(--teal); color:#fff; border-radius:10px; padding:0 16px; font-weight:700; font-size:13px}
+  .typing{align-self:flex-start; color:var(--muted); font-size:13px; padding:4px 8px}
+
+  @media (max-width:560px){
+    .cat.open .cat-body{grid-template-columns:1fr}
+    .hello h1{font-size:20px}
+    .stat{min-width:90px; padding:10px 14px}
+    .logout{position:static; margin-left:auto}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+  :focus-visible{outline:2px solid var(--teal); outline-offset:2px}
+</style>
 </head>
 <body>
+<div id="app">
+  <div class="state"><div class="spinner"></div>불러오는 중…</div>
+</div>
 
-<div class="header">
-  <div>
-    <h1>CANB 강사 온보딩 대시보드</h1>
-    <div class="teacher-name" id="teacherNameDisplay">로딩 중...</div>
+<!-- AI 멘토 -->
+<button id="mentor-fab" aria-label="AI 멘토 열기" onclick="toggleMentor()">💬</button>
+<div id="mentor" role="dialog" aria-label="AI 멘토">
+  <div class="m-head">
+    <div><b>AI 멘토</b> <span class="s">· 24시간 질문 가능</span></div>
+    <button class="m-close" onclick="toggleMentor()" aria-label="닫기">✕</button>
+  </div>
+  <div class="m-body" id="m-body">
+    <div class="msg bot">안녕하세요! POND 사용법, R&R 가이드, 수업 준비 등 온보딩 관련해 궁금한 점을 평소 말하듯 물어보세요.</div>
+  </div>
+  <div class="m-foot">
+    <input id="m-input" placeholder="질문을 입력하세요" onkeydown="if(event.key==='Enter')sendChat()" />
+    <button onclick="sendChat()">전송</button>
   </div>
 </div>
 
-<div class="container">
-
-  <div class="progress-card">
-    <h2>나의 학습 진행률</h2>
-    <div class="progress-bar-wrap">
-      <div class="progress-bar" id="progressBar" style="width:0%"></div>
-    </div>
-    <div class="progress-text" id="progressText">로딩 중...</div>
-    <div class="stats">
-      <div class="stat-box">
-        <div class="value" id="completedCount">-</div>
-        <div class="label">완료 모듈</div>
-      </div>
-      <div class="stat-box">
-        <div class="value" id="avgScore">-</div>
-        <div class="label">평균 점수</div>
-      </div>
-      <div class="stat-box">
-        <div class="value" id="totalModules">48</div>
-        <div class="label">전체 모듈</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="module-card">
-    <h2>학습 모듈 목록</h2>
-    <div id="moduleTable"><div class="loading">데이터 로딩 중...</div></div>
-  </div>
-
-</div>
-
-<!-- 챗봇 버튼 -->
-<button class="chatbot-btn" onclick="toggleChat()">AI 멘토에게 질문하기</button>
-
-<!-- 챗봇 창 -->
-<div class="chatbot-window" id="chatWindow">
-  <div class="chat-header">CANB AI 멘토</div>
-  <div class="chat-messages" id="chatMessages">
-    <div class="msg-bot">안녕하세요! CANB 온보딩 AI 멘토입니다. 궁금한 점을 질문해 주세요.</div>
-  </div>
-  <div class="chat-input-wrap">
-    <input type="text" id="chatInput" placeholder="질문을 입력하세요..." onkeydown="if(event.key==='Enter') sendMessage()">
-    <button onclick="sendMessage()">전송</button>
-  </div>
-</div>
+<div class="toast" id="toast"></div>
 
 <script>
-  const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbytP0kq6WFnXyqL14wDQQaP9LyVnfmSTrtqb9wa2WGRPtyoOdHKc-bUs4iRyjsH6zlMpA/exec';
+/* =========================================================================
+   ⚙️ 배포 전 이 한 줄만 채우세요
+   Apps Script 웹앱 배포 URL(…/exec 까지). 예: https://script.google.com/macros/s/AKfy.../exec
+   ========================================================================= */
+const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbytP0kq6WFnXyqL14wDQQaP9LyVnfmSTrtqb9wa2WGRPtyoOdHKc-bUs4iRyjsH6zlMpA/exec";
 
-  // URL에서 강사 ID 가져오기
-  const params = new URLSearchParams(window.location.search);
-  const teacherId = params.get('teacher') || 'TEST-001';
+/* ── 로그인 계약 (백엔드에 추가 필요) ───────────────────────────────────────
+   요청 : GET (WEBAPP_URL)?action=login&email=<이메일>&password=<비번>
+   성공 : { "ok": true,  "teacher": "T005", "teacherName": "조윤희" }
+   실패 : { "ok": false, "message": "이메일 또는 비밀번호가 올바르지 않습니다." }
+   * Teachers 시트에 비밀번호 열(D열) 추가 필요. (A:ID B:이름 C:이메일 D:비밀번호)
+   * 비번이 URL 쿼리에 실립니다(서버 로그·브라우저 기록에 남음). 내부 도구라 통상 감수.
+     더 강하게 가리려면 POST 방식으로 바꿔달라고 하면 교체본 드림.
+   ───────────────────────────────────────────────────────────────────────── */
 
-  // 대시보드 데이터 로드
-  async function loadDashboard() {
-    try {
-      const res = await fetch(WEB_APP_URL + '?teacher=' + teacherId);
-      const data = await res.json();
+let currentTeacher = null;
+let currentName    = null;
+let DATA = null;
 
-      document.getElementById('teacherNameDisplay').textContent = data.teacherName + ' 강사님';
-      document.getElementById('completedCount').textContent = data.completedCount;
-      document.getElementById('avgScore').textContent = data.avgScore + '점';
+/* 세션 유지: sessionStorage 사용, 막힌 환경(미리보기 등)에선 메모리로 폴백 */
+const SK = "canb_session";
+let _mem = null;
+function saveSession(s){ try{ sessionStorage.setItem(SK, JSON.stringify(s)); }catch(e){} _mem = s; }
+function readSession(){ try{ const r=sessionStorage.getItem(SK); if(r) return JSON.parse(r); }catch(e){} return _mem; }
+function clearSession(){ try{ sessionStorage.removeItem(SK); }catch(e){} _mem=null; }
 
-      const pct = Math.round((data.completedCount / 48) * 100);
-      document.getElementById('progressBar').style.width = pct + '%';
-      document.getElementById('progressText').textContent = data.completedCount + ' / 48 모듈 완료 (' + pct + '%)';
+/* /exec 호출 헬퍼 (전부 GET) */
+async function api(params){
+  const u = new URL(WEBAPP_URL);
+  Object.entries(params).forEach(([k,v]) => u.searchParams.set(k, v));
+  const res = await fetch(u.toString(), { method:"GET" });
+  if(!res.ok) throw new Error("HTTP " + res.status);
+  return res.json();
+}
 
-      renderModules(data.modules, data.progress);
-    } catch (e) {
-      document.getElementById('moduleTable').innerHTML = '<div class="loading">데이터를 불러올 수 없습니다. 잠시 후 다시 시도해주세요.</div>';
-    }
-  }
+/* ===== 진입점 ===== */
+function init(){
+  /* 테스트용 우회: ?teacher=T005 가 붙어 있으면 로그인 건너뛰고 바로 대시보드
+     (백엔드 login 액션 완성 전 화면 미리보기용. 실서비스에선 링크에서 제거) */
+  const t = new URLSearchParams(location.search).get("teacher");
+  if(t){ enter(t, null); return; }
 
-  function renderModules(modules, progress) {
-    if (!modules || modules.length === 0) {
-      document.getElementById('moduleTable').innerHTML = '<div class="loading">모듈 데이터가 없습니다.</div>';
-      return;
-    }
+  const s = readSession();
+  if(s && s.teacher){ enter(s.teacher, s.name); return; }
 
-    const progressMap = {};
-    if (progress) {
-      progress.forEach(p => { progressMap[p.moduleId] = p; });
-    }
-
-    let html = '<table><thead><tr><th>ID</th><th>과목명</th><th>카테고리</th><th>퀴즈 결과</th><th>학습 링크</th></tr></thead><tbody>';
-
-    modules.forEach(mod => {
-      const p = progressMap[mod.moduleId] || {};
-      const quizResult = p.quizResult
-        ? (p.quizResult.includes('Pass')
-            ? '<span class="badge-pass">Pass ' + p.score + '점</span>'
-            : '<span class="badge-fail">Fail ' + p.score + '점</span>')
-        : '<span class="badge-pending">미응시</span>';
-
-      const videoBtn = mod.videoUrl
-        ? '<a href="' + mod.videoUrl + '" target="_blank" class="btn-video">[영상 시청]</a>'
-        : '';
-      const quizBtn = mod.quizUrl
-        ? '<a href="' + mod.quizUrl + '" target="_blank" class="btn-quiz">[퀴즈 응시]</a>'
-        : '';
-      const linkCell = (videoBtn || quizBtn) ? videoBtn + quizBtn : '<span class="btn-disabled">준비 중</span>';
-
-      html += '<tr><td>' + mod.moduleId + '</td><td><strong>' + mod.title + '</strong></td><td>' + mod.category + '</td><td>' + quizResult + '</td><td>' + linkCell + '</td></tr>';
-    });
-
-    html += '</tbody></table>';
-    document.getElementById('moduleTable').innerHTML = html;
-  }
-
-  // 챗봇
-  function toggleChat() {
-    const win = document.getElementById('chatWindow');
-    win.classList.toggle('open');
-  }
-
-  async function sendMessage() {
-    const input = document.getElementById('chatInput');
-    const msg = input.value.trim();
-    if (!msg) return;
-
-    addMessage(msg, 'user');
-    input.value = '';
-    addMessage('...', 'bot');
-
-    try {
-      const res = await fetch(WEB_APP_URL + '?action=chat&message=' + encodeURIComponent(msg) + '&teacher=' + teacherId);
-      const data = await res.json();
-      removeLastBot();
-      addMessage(data.reply || '답변을 가져올 수 없습니다.', 'bot');
-    } catch (e) {
-      removeLastBot();
-      addMessage('연결에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.', 'bot');
-    }
-  }
-
-  function addMessage(text, type) {
-    const div = document.createElement('div');
-    div.className = type === 'user' ? 'msg-user' : 'msg-bot';
-    div.textContent = text;
-    document.getElementById('chatMessages').appendChild(div);
-    document.getElementById('chatMessages').scrollTop = 999999;
-  }
-
-  function removeLastBot() {
-    const msgs = document.getElementById('chatMessages');
-    const bots = msgs.querySelectorAll('.msg-bot');
-    if (bots.length > 0) bots[bots.length - 1].remove();
-  }
-
+  showLogin();
+}
+function enter(teacher, name){
+  currentTeacher = teacher; currentName = name;
+  document.body.classList.add("authed");
   loadDashboard();
-</script>
+}
 
+/* ===== 로그인 화면 ===== */
+function showLogin(){
+  document.body.classList.remove("authed");
+  document.getElementById("mentor").classList.remove("open");
+  document.getElementById("app").innerHTML = `
+  <div class="login-bg"><div class="login-card">
+    <div class="eyebrow">CANB Smart Onboarding</div>
+    <h1>강사 로그인</h1>
+    <p class="lead">등록된 이메일과 비밀번호로 로그인하세요.</p>
+    <div class="field">
+      <label for="li-email">이메일</label>
+      <input id="li-email" type="email" autocomplete="username" placeholder="name@example.com"
+             onkeydown="if(event.key==='Enter')document.getElementById('li-pw').focus()" />
+    </div>
+    <div class="field">
+      <label for="li-pw">비밀번호</label>
+      <input id="li-pw" type="password" autocomplete="current-password" placeholder="비밀번호"
+             onkeydown="if(event.key==='Enter')handleLogin()" />
+    </div>
+    <button class="login-btn" id="li-btn" onclick="handleLogin()">로그인</button>
+    <div class="login-err" id="li-err"></div>
+    <div class="login-foot">비밀번호 문제는 관리자에게 문의하세요.</div>
+  </div></div>`;
+  setTimeout(()=>{ const e=document.getElementById("li-email"); if(e) e.focus(); },50);
+}
+function loginErr(msg){
+  const el=document.getElementById("li-err");
+  if(el){ el.textContent=msg; el.classList.add("show"); }
+}
+async function handleLogin(){
+  const email=(document.getElementById("li-email").value||"").trim();
+  const pw=document.getElementById("li-pw").value||"";
+  const btn=document.getElementById("li-btn");
+  document.getElementById("li-err").classList.remove("show");
+  if(!email || !pw){ loginErr("이메일과 비밀번호를 모두 입력하세요."); return; }
+  btn.disabled=true; btn.textContent="확인 중…";
+  try{
+    const r = await api({ action:"login", email, password:pw });
+    if(r && r.ok){
+      saveSession({ teacher:r.teacher, name:r.teacherName });
+      enter(r.teacher, r.teacherName);
+    }else{
+      loginErr((r && r.message) || "이메일 또는 비밀번호가 올바르지 않습니다.");
+      btn.disabled=false; btn.textContent="로그인";
+    }
+  }catch(e){
+    loginErr("서버에 연결하지 못했습니다. WEBAPP_URL과 웹앱 배포 설정(모든 사용자 액세스)을 확인하세요.");
+    btn.disabled=false; btn.textContent="로그인";
+    console.error(e);
+  }
+}
+function logout(){
+  clearSession();
+  currentTeacher=null; currentName=null; DATA=null;
+  showLogin();
+}
+
+/* ===== 대시보드 로드 ===== */
+async function loadDashboard(){
+  document.getElementById("app").innerHTML = `<div class="wrap"><div class="state"><div class="spinner"></div>대시보드를 불러오는 중…</div></div>`;
+  try{
+    DATA = await api({ teacher: currentTeacher });
+    render(DATA);
+  }catch(e){
+    document.getElementById("app").innerHTML =
+      `<div class="wrap"><div class="err"><b>대시보드를 불러오지 못했습니다.</b><br>
+       <code>WEBAPP_URL</code> 값과, Apps Script 웹앱이 <b>'모든 사용자' 액세스</b>로 배포됐는지 확인하세요.<br>
+       <span style="color:#6b7488">상세: ${esc(String(e.message||e))}</span></div>
+       <div style="margin-top:14px"><button class="logout" style="position:static" onclick="logout()">로그인으로</button></div></div>`;
+    console.error(e);
+  }
+}
+
+/* ===== 렌더 ===== */
+function render(d){
+  const modules  = d.modules || [];
+  const progMap  = {};
+  (d.progress || []).forEach(p => progMap[p.moduleId] = p);
+
+  const total     = modules.length;
+  const completed = d.completedCount ?? 0;
+  const pct       = total ? Math.round(completed/total*100) : 0;
+  const avg       = (d.avgScore===null || d.avgScore===undefined || isNaN(d.avgScore)) ? "—" : d.avgScore;
+
+  /* category 값을 그대로 축으로 사용 → 모듈 수·구조 변경에도 안 깨짐 */
+  const cats=[]; const idx={};
+  modules.forEach(m=>{ const c=m.category||"기타"; if(idx[c]===undefined){idx[c]=cats.length;cats.push({name:c,items:[]});} cats[idx[c]].items.push(m); });
+
+  const html = `
+  <div class="wrap">
+  <header class="top">
+    <button class="logout" onclick="logout()">로그아웃</button>
+    <div class="hello">
+      <span class="eyebrow">CANB Smart Onboarding</span>
+      <h1>${esc(d.teacherName || currentName || currentTeacher)} 강사님 <small>의 학습 현황</small></h1>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="v">${completed}<span style="font-size:14px;color:#aeb9d6"> / ${total}</span></div><div class="k">모듈 완료</div></div>
+      <div class="stat"><div class="v">${avg}<span style="font-size:14px;color:#aeb9d6">${avg==="—"?"":"점"}</span></div><div class="k">평균 점수</div></div>
+      <div class="stat"><div class="v" style="color:${d.bookingEligible?'#9cf2a0':'#aeb9d6'}">${d.bookingEligible?'가능':'잠금'}</div><div class="k">모의강의 예약</div></div>
+    </div>
+    <div class="progress-line">
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <div class="lab">전체 진행률 ${pct}% — 모듈 1개만 완료해도 모의강의 예약이 열립니다</div>
+    </div>
+  </header>
+
+  <section class="block">
+    <div class="block-head"><h2><span class="accent"></span>학습 모듈</h2>
+      <span class="sub">영상 → 퀴즈(70점 Pass) → 샘플수업 → POND 순서로 진행됩니다</span></div>
+    ${cats.map((c,ci)=>renderCat(c,ci,progMap)).join("")}
+  </section>
+
+  <section class="block">
+    <div class="block-head"><h2><span class="accent"></span>모의강의 예약</h2>
+      <span class="sub">선착순 · 예약 즉시 관리자에게 알림이 전송됩니다</span></div>
+    ${renderBooking(d)}
+  </section>
+  </div>`;
+
+  document.getElementById("app").innerHTML = html;
+}
+
+function renderCat(c, ci, progMap){
+  const doneN=c.items.filter(m=>progMap[m.moduleId]?.moduleComplete).length;
+  const pct=Math.round(doneN/c.items.length*100);
+  return `
+  <div class="cat${ci===0?' open':''}">
+    <div class="cat-head" onclick="this.parentNode.classList.toggle('open')">
+      <div class="cat-title">${esc(c.name)} <span class="cat-count">${doneN}/${c.items.length} 완료</span></div>
+      <div class="cat-meta"><div class="mini-bar"><i style="width:${pct}%"></i></div><span class="chev">▸</span></div>
+    </div>
+    <div class="cat-body">${c.items.map(m=>renderModule(m, progMap[m.moduleId]||{})).join("")}</div>
+  </div>`;
+}
+
+function renderModule(m, p){
+  const passed=!!p.passed, sample=!!p.sampleDone, pond=!!p.pondDone, done=!!p.moduleComplete;
+
+  const stepVideo = `
+    <div class="step"><span class="lab">${p.videoWatched?'✓ ':''}① 영상</span>
+      ${m.videoUrl?`<button class="step-btn b-open" onclick="openLink('${js(m.videoUrl)}')">영상 보기</button>`
+                  :`<button class="step-btn b-lock" disabled>준비중</button>`}
+    </div>`;
+
+  let quizState;
+  if(passed)            quizState=`<span class="pill p-pass">Pass ${num(p.score)}</span>`;
+  else if(p.quizResult) quizState=`<span class="pill p-retry">재응시 ${num(p.score)}</span>`;
+  else                  quizState=`<span class="pill p-wait">대기</span>`;
+  const stepQuiz = `
+    <div class="step"><span class="lab">② 퀴즈</span>
+      ${m.quizUrl?`<button class="step-btn b-open" onclick="openLink('${js(m.quizUrl)}')">${passed?'다시 풀기':'퀴즈 풀기'}</button>`
+                 :`<button class="step-btn b-lock" disabled>준비중</button>`}
+      ${quizState}
+    </div>`;
+
+  const stepSample = `
+    <div class="step"><span class="lab">③ 샘플수업</span>
+      ${ sample?`<button class="step-btn b-done" disabled>완료 ✓</button>`
+        : passed?`<button class="step-btn b-do" onclick="doAction('sampleComplete','${js(m.moduleId)}',this)">완료 표시</button>`
+                :`<button class="step-btn b-lock" disabled>🔒 퀴즈 Pass 후</button>` }
+    </div>`;
+
+  const stepPond = `
+    <div class="step"><span class="lab">④ POND</span>
+      ${ pond?`<button class="step-btn b-done" disabled>완료 ✓</button>`
+        : sample?`<button class="step-btn b-do" onclick="doAction('pondComplete','${js(m.moduleId)}',this)">완료 표시</button>`
+                :`<button class="step-btn b-lock" disabled>🔒 샘플 후</button>` }
+    </div>`;
+
+  return `
+  <div class="mod${done?' done':''}">
+    <div class="mod-top">
+      <div>
+        <div class="mod-id">${esc(m.moduleId)}</div>
+        <div class="mod-title">${esc(m.title)}</div>
+        ${m.target?`<span class="mod-target">${esc(m.target)}</span>`:''}
+      </div>
+      ${done?`<span class="ribbon">모듈 완료</span>`:''}
+    </div>
+    <div class="steps">${stepVideo}${stepQuiz}${stepSample}${stepPond}</div>
+  </div>`;
+}
+
+function renderBooking(d){
+  if(!d.bookingEligible){
+    return `<div class="book-card"><div class="book-locked">
+      <div class="ic">🔒</div>
+      <div><b style="color:var(--ink)">아직 예약할 수 없습니다.</b><br>모듈을 1개 이상 완료하면 예약 슬롯이 열립니다.</div>
+    </div></div>`;
+  }
+  if(d.myBooking){
+    const b=d.myBooking;
+    return `<div class="book-card"><div class="mybooking">
+      <span class="ic">📅</span>
+      <div>예약이 확정되었습니다 — <b>${esc(b.when)}</b> · ${esc(b.place)}
+      <div style="font-size:12px;color:var(--muted);margin-top:3px">변경이 필요하면 관리자에게 문의하세요.</div></div>
+    </div></div>`;
+  }
+  const slots=d.availableSlots||[]; const groups={};
+  slots.forEach(s=>{ (groups[s.place]=groups[s.place]||[]).push(s); });
+
+  const groupHtml=Object.entries(groups).map(([place,arr],gi)=>{
+    const open=arr.filter(s=>(s.booked||0)<(s.capacity||0));
+    const full=arr.filter(s=>(s.booked||0)>=(s.capacity||0));
+    const slotBtn=s=>{
+      const isFull=(s.booked||0)>=(s.capacity||0);
+      return `<div class="slot${isFull?' full':''}">
+        <div><div class="w">${esc(s.when)}</div><div class="c">잔여 ${Math.max(0,(s.capacity||0)-(s.booked||0))} / ${s.capacity||0}</div></div>
+        ${isFull?`<button disabled>마감</button>`:`<button onclick="doBook('${js(s.slotId)}',this)">예약</button>`}
+      </div>`;
+    };
+    return `<div class="place-group">
+      <h4>${esc(place)} <span class="n">· 예약 가능 ${open.length}개 / 전체 ${arr.length}개</span></h4>
+      <div class="slots">${open.map(slotBtn).join("")}</div>
+      ${full.length?`<button class="toggle-full" onclick="
+          const el=document.getElementById('full-${gi}'); el.style.display=el.style.display==='grid'?'none':'grid';
+          this.textContent=el.style.display==='grid'?'마감된 슬롯 숨기기':'마감된 슬롯 ${full.length}개 보기';">
+          마감된 슬롯 ${full.length}개 보기</button>
+        <div class="slots" id="full-${gi}" style="display:none; margin-top:8px">${full.map(slotBtn).join("")}</div>`:``}
+    </div>`;
+  }).join("");
+
+  return `<div class="book-card">
+    <div style="font-size:13px;color:var(--muted);margin-bottom:4px">필수 모듈을 이수해 예약이 열렸습니다. 원하는 시간을 선택하세요.</div>
+    ${groupHtml || '<div style="color:var(--muted);padding:10px 0">현재 등록된 슬롯이 없습니다.</div>'}
+  </div>`;
+}
+
+/* ===== 액션 ===== */
+async function doAction(action, moduleId, btn){
+  setBusy(btn,true);
+  try{
+    const r=await api({ action, teacher:currentTeacher, module:moduleId });
+    if(r && r.ok===false){ toast(r.message||"처리할 수 없습니다 (순서를 확인하세요).",true); setBusy(btn,false); return; }
+    toast(action==='sampleComplete'?"샘플수업 완료로 표시했습니다.":"POND 연습 완료로 표시했습니다.");
+    await loadDashboard();
+  }catch(e){ toast("처리 중 오류가 발생했습니다.",true); setBusy(btn,false); console.error(e); }
+}
+async function doBook(slotId, btn){
+  setBusy(btn,true);
+  try{
+    const r=await api({ action:"bookSlot", teacher:currentTeacher, slot:slotId });
+    if(r && r.ok===false){ toast(r.message||"이미 마감된 슬롯입니다.",true); await loadDashboard(); return; }
+    toast("예약이 확정되었습니다."); await loadDashboard();
+  }catch(e){ toast("예약 중 오류가 발생했습니다.",true); setBusy(btn,false); console.error(e); }
+}
+
+/* ===== AI 멘토 ===== */
+function toggleMentor(){
+  const el=document.getElementById("mentor"); el.classList.toggle("open");
+  if(el.classList.contains("open")) document.getElementById("m-input").focus();
+}
+async function sendChat(){
+  const inp=document.getElementById("m-input"); const text=inp.value.trim();
+  if(!text) return;
+  inp.value=""; pushMsg(text,"me"); const typing=pushTyping();
+  try{
+    const r=await api({ action:"chat", message:text });
+    typing.remove();
+    const reply=(r && (r.reply||r.answer||r.text)) || (typeof r==="string"?r:"답변을 가져오지 못했습니다.");
+    const img=r && (r.imageUrl||r.image||r["이미지링크"]);
+    pushMsg(reply,"bot",img);
+  }catch(e){ typing.remove(); pushMsg("연결에 문제가 있습니다. 잠시 후 다시 시도해 주세요.","bot"); console.error(e); }
+}
+function pushMsg(text,who,img){
+  const b=document.getElementById("m-body"); const el=document.createElement("div");
+  el.className="msg "+who; el.textContent=text;
+  if(img){ const i=document.createElement("img"); i.src=img; i.alt=""; el.appendChild(i); }
+  b.appendChild(el); b.scrollTop=b.scrollHeight;
+}
+function pushTyping(){
+  const b=document.getElementById("m-body"); const el=document.createElement("div");
+  el.className="typing"; el.textContent="답변 작성 중…"; b.appendChild(el); b.scrollTop=b.scrollHeight; return el;
+}
+
+/* ===== 유틸 ===== */
+function openLink(u){ window.open(u,"_blank","noopener"); }
+function setBusy(btn,on){ if(!btn) return; btn.disabled=on; if(on){ btn._t=btn.textContent; btn.textContent="처리중…"; } else if(btn._t){ btn.textContent=btn._t; } }
+function num(s){ return (s===0||s)?`${s}점`:""; }
+function esc(s){ return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function js(s){ return String(s??"").replace(/'/g,"\\'"); }
+let toastTimer;
+function toast(msg,bad){
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.className="toast show"+(bad?" bad":"");
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.className="toast"+(bad?" bad":""),2600);
+}
+
+init();
+</script>
 </body>
 </html>
