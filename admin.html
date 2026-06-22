@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>CANB 관리자 — 모의강의 결과 기입</title>
+<title>CANB 관리자</title>
 <style>
   :root{
     --navy:#14275c; --navy-deep:#0d1b3e; --ink:#1c2540;
@@ -48,7 +48,12 @@
   .logout{background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.18); color:#cdd7ef; font-size:12px; font-weight:600; padding:7px 13px; border-radius:8px}
   .logout:hover{background:rgba(255,255,255,.18); color:#fff}
 
-  .bar{display:flex; align-items:center; justify-content:space-between; margin:24px 2px 12px; gap:10px}
+  /* 탭 (super 전용) */
+  .tabs{display:flex; gap:8px; margin:22px 2px 4px}
+  .tab{background:var(--lock-bg); color:var(--navy); font-size:13px; font-weight:700; padding:9px 16px; border-radius:9px}
+  .tab.active{background:var(--navy); color:#fff}
+
+  .bar{display:flex; align-items:center; justify-content:space-between; margin:24px 2px 12px; gap:10px; flex-wrap:wrap}
   .bar h2{margin:0; font-size:16px; color:var(--navy); font-weight:800}
   .bar .sub{font-size:12.5px; color:var(--muted)}
   .refresh{background:var(--lock-bg); color:var(--navy); font-size:12.5px; font-weight:600; padding:7px 13px; border-radius:8px}
@@ -71,6 +76,23 @@
   .save:hover{background:var(--teal-d)}
   @media (max-width:680px){ .form{grid-template-columns:1fr 1fr} .save{grid-column:1 / -1} }
 
+  /* 이수 현황 표 */
+  .tablecard{background:var(--card); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); overflow:hidden}
+  .ttable{width:100%; border-collapse:collapse; font-size:13px}
+  .ttable th{background:#f7f9fd; color:var(--navy); font-weight:700; text-align:left; padding:11px 14px; border-bottom:1px solid var(--line); white-space:nowrap}
+  .ttable td{padding:11px 14px; border-bottom:1px solid var(--line); vertical-align:middle}
+  .ttable tr:last-child td{border-bottom:none}
+  .ttable tbody tr:hover{background:#fafbfe}
+  .tnum{font-variant-numeric:tabular-nums}
+  .prog{display:flex; align-items:center; gap:8px; min-width:130px}
+  .pbar{flex:1; height:7px; background:var(--lock-bg); border-radius:99px; overflow:hidden}
+  .pfill{height:100%; background:var(--teal); border-radius:99px}
+  .chip{font-size:11px; font-weight:700; padding:2px 9px; border-radius:99px}
+  .chip-y{background:var(--lime-bg); color:var(--lime)}
+  .chip-n{background:var(--lock-bg); color:var(--lock)}
+  .small{font-size:11.5px; color:var(--muted)}
+  @media (max-width:680px){ .col-hide{display:none} }
+
   .state{padding:54px 20px; text-align:center; color:var(--muted)}
   .spinner{width:30px; height:30px; border:3px solid var(--line); border-top-color:var(--teal); border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 14px}
   @keyframes spin{to{transform:rotate(360deg)}}
@@ -91,7 +113,8 @@
 const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbytP0kq6WFnXyqL14wDQQaP9LyVnfmSTrtqb9wa2WGRPtyoOdHKc-bUs4iRyjsH6zlMpA/exec";
 const RESULT_OPTIONS = ["우수", "양호", "보통", "재평가"];
 
-let AUTH = null;   // { email, password, name }
+let AUTH = null;   // { email, password, name, role, campus }
+let VIEW = "status";   // super일 때 현재 탭: "status" | "results"
 const SK = "canb_admin_session";
 let _mem = null;
 function saveSession(s){ try{ sessionStorage.setItem(SK, JSON.stringify(s)); }catch(e){} _mem=s; }
@@ -108,18 +131,18 @@ async function api(params){
 
 function init(){
   const s = readSession();
-  if(s && s.email){ AUTH = s; loadReservations(); }
+  if(s && s.email){ AUTH = s; routeHome(); }
   else showLogin();
 }
 
-/* 로그인 (super 전용) */
+/* 로그인 (super + campus 허용) */
 function showLogin(){
   clearSession(); AUTH = null;
   document.getElementById("app").innerHTML = `
   <div class="login-bg"><div class="login-card">
     <div class="eyebrow">CANB Admin</div>
     <h1>관리자 로그인</h1>
-    <p class="lead">총괄 관리자 계정으로 로그인하세요.</p>
+    <p class="lead">총괄 또는 캠퍼스 관리자 계정으로 로그인하세요.</p>
     <div class="field"><label for="le">이메일</label>
       <input id="le" type="email" autocomplete="username" placeholder="name@example.com"
         onkeydown="if(event.key==='Enter')document.getElementById('lp').focus()"></div>
@@ -143,20 +166,128 @@ async function doLogin(){
   try{
     const r = await api({ action:"login", email, password:pw });
     if(!r || !r.ok){ loginErr((r&&r.message)||"로그인 정보가 올바르지 않습니다."); btn.disabled=false; btn.textContent="로그인"; return; }
-    if(r.role !== "super"){ loginErr("이 페이지는 총괄 관리자 전용입니다."); btn.disabled=false; btn.textContent="로그인"; return; }
-    AUTH = { email, password:pw, name:r.teacherName || "" };
+    if(r.role !== "super" && r.role !== "campus"){ loginErr("이 페이지는 관리자 전용입니다."); btn.disabled=false; btn.textContent="로그인"; return; }
+    AUTH = { email, password:pw, name:r.teacherName || "", role:r.role, campus:r.campus || "" };
     saveSession(AUTH);
-    loadReservations();
+    routeHome();
   }catch(e){
     loginErr("서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.");
     btn.disabled=false; btn.textContent="로그인"; console.error(e);
   }
 }
-function logout(){ clearSession(); AUTH=null; showLogin(); }
+function logout(){ clearSession(); AUTH=null; VIEW="status"; showLogin(); }
 
-/* 예약 목록 */
+/* 로그인 후 진입: campus는 항상 현황, super는 마지막 탭(기본 현황) */
+function routeHome(){
+  if(AUTH.role === "super"){ if(VIEW==="results") loadReservations(); else loadStatus(); }
+  else loadStatus();   // campus
+}
+function switchTab(v){ VIEW=v; routeHome(); }
+
+/* 공통 헤더 + (super) 탭 */
+function chrome(activeView){
+  const roleLabel = AUTH.role==="super" ? "총괄 관리자" : "캠퍼스 관리자";
+  const tabs = AUTH.role==="super" ? `
+    <div class="tabs">
+      <button class="tab ${activeView==='status'?'active':''}" onclick="switchTab('status')">이수 현황</button>
+      <button class="tab ${activeView==='results'?'active':''}" onclick="switchTab('results')">결과 기입</button>
+    </div>` : "";
+  return `
+    <header class="top">
+      <div>
+        <div class="eyebrow">CANB Admin</div>
+        <h1>${AUTH.role==="super" ? "관리자 콘솔" : "캠퍼스 이수 현황"}</h1>
+        <div class="who">${esc(AUTH.name||AUTH.email)} · ${roleLabel}${AUTH.role==="campus"&&AUTH.campus?(" · "+esc(AUTH.campus)):""}</div>
+      </div>
+      <button class="logout" onclick="logout()">로그아웃</button>
+    </header>
+    ${tabs}`;
+}
+
+/* ===== 이수 현황 (campus/super 공용, 읽기 전용) ===== */
+async function loadStatus(){
+  document.getElementById("app").innerHTML = `<div class="wrap">${chrome("status")}<div class="state"><div class="spinner"></div>이수 현황을 불러오는 중…</div></div>`;
+  try{
+    const r = await api({ action:"campusStatus", email:AUTH.email, password:AUTH.password });
+    if(!r || !r.ok){
+      if(r && /권한/.test(r.message||"")){ logout(); return; }
+      throw new Error((r&&r.message)||"불러오기 실패");
+    }
+    renderStatus(r);
+  }catch(e){
+    document.getElementById("app").innerHTML = `<div class="wrap">${chrome("status")}<div class="err"><b>이수 현황을 불러오지 못했습니다.</b><br><span style="color:#6b7488">${esc(String(e.message||e))}</span></div>
+      <div style="margin-top:14px"><button class="logout" style="background:#eef0f5;color:#14275c" onclick="logout()">로그인으로</button></div></div>`;
+    console.error(e);
+  }
+}
+
+function renderStatus(r){
+  const list = r.teachers || [];
+  const total = r.total || 45;
+  const scope = r.campus || (AUTH.campus || "");
+  const rowsHtml = list.length ? list.map(t=>statusRow(t,total)).join("") :
+    `<tr><td colspan="6"><div class="empty" style="border:none;padding:26px">${esc(r.message||"표시할 강사가 없습니다.")}</div></td></tr>`;
+
+  document.getElementById("app").innerHTML = `
+  <div class="wrap">
+    ${chrome("status")}
+    <div class="bar">
+      <div>
+        <h2>강사 이수 현황 ${scope?`<span class="small">· ${esc(scope)}</span>`:""}</h2>
+        <span class="sub">전체 ${list.length}명 · 분모 ${total}개 기준 · 조회 ${esc(r.generatedAt||"")}</span>
+      </div>
+      <button class="refresh" onclick="loadStatus()">새로고침</button>
+    </div>
+    <div class="tablecard">
+      <table class="ttable">
+        <thead>
+          <tr>
+            <th>강사</th>
+            <th class="col-hide">캠퍼스</th>
+            <th>이수 진도</th>
+            <th>평균점수</th>
+            <th>예약</th>
+            <th class="col-hide">마지막 갱신</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>
+    <p class="small" style="margin:12px 2px 0">
+      · <b>이수 진도</b>는 영상·퀴즈·샘플·POND를 모두 끝낸 '완전 이수' 모듈 수입니다. 괄호 안은 퀴즈만 통과한 수입니다.<br>
+      · 분모는 현재 전체 ${total}개 고정이며, 추후 한국인/원어민 담당 과목별 기준으로 분리 예정입니다.<br>
+      · 데이터는 조회 시점(${esc(r.generatedAt||"")}) 기준 실시간 집계입니다.
+    </p>
+  </div>`;
+}
+
+function statusRow(t, total){
+  const complete = Number(t.complete||0);
+  const passed = Number(t.passed||0);
+  const pct = total>0 ? Math.min(100, Math.round(complete/total*100)) : 0;
+  const book = t.bookingEligible
+    ? `<span class="chip chip-y">가능</span>`
+    : `<span class="chip chip-n">대기</span>`;
+  return `
+  <tr>
+    <td><b>${esc(t.teacherName)}</b><br><span class="small">${esc(t.teacherId)}</span></td>
+    <td class="col-hide">${esc(t.campus||"")}</td>
+    <td>
+      <div class="prog">
+        <div class="pbar"><div class="pfill" style="width:${pct}%"></div></div>
+        <span class="tnum">${complete}/${total}</span>
+      </div>
+      <span class="small">퀴즈통과 ${passed} · POND ${Number(t.pond||0)}</span>
+    </td>
+    <td class="tnum">${Number(t.avgScore||0)}</td>
+    <td>${book}</td>
+    <td class="col-hide small">${esc(t.lastUpdate||"-")}</td>
+  </tr>`;
+}
+
+/* ===== 예약/결과 기입 (super 전용) ===== */
 async function loadReservations(){
-  document.getElementById("app").innerHTML = `<div class="wrap"><div class="state"><div class="spinner"></div>예약 목록을 불러오는 중…</div></div>`;
+  document.getElementById("app").innerHTML = `<div class="wrap">${chrome("results")}<div class="state"><div class="spinner"></div>예약 목록을 불러오는 중…</div></div>`;
   try{
     const r = await api({ action:"getReservations", email:AUTH.email, password:AUTH.password });
     if(!r || !r.ok){
@@ -164,9 +295,9 @@ async function loadReservations(){
       throw new Error((r&&r.message)||"불러오기 실패");
     }
     if(r.adminName && !AUTH.name){ AUTH.name=r.adminName; saveSession(AUTH); }
-    render(r.reservations || []);
+    renderReservations(r.reservations || []);
   }catch(e){
-    document.getElementById("app").innerHTML = `<div class="wrap"><div class="err"><b>예약 목록을 불러오지 못했습니다.</b><br><span style="color:#6b7488">${esc(String(e.message||e))}</span></div>
+    document.getElementById("app").innerHTML = `<div class="wrap">${chrome("results")}<div class="err"><b>예약 목록을 불러오지 못했습니다.</b><br><span style="color:#6b7488">${esc(String(e.message||e))}</span></div>
       <div style="margin-top:14px"><button class="logout" style="background:#eef0f5;color:#14275c" onclick="logout()">로그인으로</button></div></div>`;
     console.error(e);
   }
@@ -177,22 +308,14 @@ function isPending(result){
   return !r || r.indexOf("예약완료")===0 || r.indexOf("대기")>=0;
 }
 
-function render(list){
+function renderReservations(list){
   const pending = list.filter(x=>isPending(x.result)).length;
   const cards = list.length ? list.map(renderCard).join("") :
     `<div class="empty">아직 예약된 모의강의가 없습니다.</div>`;
 
   document.getElementById("app").innerHTML = `
   <div class="wrap">
-    <header class="top">
-      <div>
-        <div class="eyebrow">CANB Admin</div>
-        <h1>모의강의 결과 기입</h1>
-        <div class="who">${esc(AUTH.name||AUTH.email)} · 총괄 관리자</div>
-      </div>
-      <button class="logout" onclick="logout()">로그아웃</button>
-    </header>
-
+    ${chrome("results")}
     <div class="bar">
       <div><h2>예약 목록</h2><span class="sub">미평가 ${pending}건 · 전체 ${list.length}건 (미평가가 위에 표시됩니다)</span></div>
       <button class="refresh" onclick="loadReservations()">새로고침</button>
