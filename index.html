@@ -116,6 +116,15 @@
   .p-retry{background:var(--red-bg); color:var(--red)}
   .p-wait{background:var(--lock-bg); color:var(--lock)}
 
+  /* ===== 샘플수업 목록 ===== */
+  .sample-list{margin-top:9px; border-top:1px dashed var(--line); padding-top:9px; display:flex; flex-direction:column; gap:6px}
+  .sample-head{font-size:11px; font-weight:700; color:var(--navy)}
+  .sample-head .sl-lock{color:var(--muted); font-weight:500}
+  .sample-row{display:flex; align-items:center; justify-content:space-between; gap:8px; background:#fbfcfe; border:1px solid var(--line); border-radius:8px; padding:6px 9px}
+  .sl-title{font-size:12px; color:var(--ink); font-weight:600; flex:1; min-width:0}
+  .sl-btns{display:flex; gap:6px; flex:0 0 auto}
+  .sl-btns .step-btn{width:auto; padding:5px 10px; white-space:nowrap}
+
   /* ===== 예약 ===== */
   .book-card{background:var(--card); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow); padding:20px 22px}
   .book-locked{display:flex; gap:14px; align-items:center; color:var(--muted)}
@@ -174,6 +183,8 @@
   }
   @media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
   :focus-visible{outline:2px solid var(--teal); outline-offset:2px}
+  #lang-toggle{position:fixed; top:14px; left:16px; z-index:60; background:rgba(255,255,255,.92); border:1px solid var(--line); color:var(--navy); font-weight:700; font-size:12px; padding:6px 12px; border-radius:99px; box-shadow:var(--shadow)}
+  #lang-toggle:hover{background:#fff}
 </style>
 </head>
 <body>
@@ -181,19 +192,22 @@
   <div class="state"><div class="spinner"></div>불러오는 중…</div>
 </div>
 
+<!-- 언어 토글 -->
+<button id="lang-toggle" onclick="toggleLang()">EN</button>
+
 <!-- AI 멘토 -->
-<button id="mentor-fab" aria-label="AI 멘토 열기" onclick="toggleMentor()">💬</button>
-<div id="mentor" role="dialog" aria-label="AI 멘토">
+<button id="mentor-fab" aria-label="AI Mentor" onclick="toggleMentor()">💬</button>
+<div id="mentor" role="dialog" aria-label="AI Mentor">
   <div class="m-head">
-    <div><b>AI 멘토</b> <span class="s">· 24시간 질문 가능</span></div>
-    <button class="m-close" onclick="toggleMentor()" aria-label="닫기">✕</button>
+    <div><b id="m-title">AI 멘토</b> <span class="s" id="m-sub">· 24시간 질문 가능</span></div>
+    <button class="m-close" onclick="toggleMentor()" aria-label="Close">✕</button>
   </div>
   <div class="m-body" id="m-body">
-    <div class="msg bot">안녕하세요! POND 사용법, R&R 가이드, 수업 준비 등 온보딩 관련해 궁금한 점을 평소 말하듯 물어보세요.</div>
+    <div class="msg bot" id="m-intro">안녕하세요! POND 사용법, R&R 가이드, 수업 준비 등 온보딩 관련해 궁금한 점을 평소 말하듯 물어보세요.</div>
   </div>
   <div class="m-foot">
     <input id="m-input" placeholder="질문을 입력하세요" onkeydown="if(event.key==='Enter')sendChat()" />
-    <button onclick="sendChat()">전송</button>
+    <button id="m-send" onclick="sendChat()">전송</button>
   </div>
 </div>
 
@@ -226,6 +240,111 @@ function saveSession(s){ try{ sessionStorage.setItem(SK, JSON.stringify(s)); }ca
 function readSession(){ try{ const r=sessionStorage.getItem(SK); if(r) return JSON.parse(r); }catch(e){} return _mem; }
 function clearSession(){ try{ sessionStorage.removeItem(SK); }catch(e){} _mem=null; }
 
+/* ===== 다국어(i18n) ===== */
+const I18N = {
+  ko:{
+    pts:'점',
+    loginTitle:'강사 로그인', loginLead:'등록된 이메일과 비밀번호로 로그인하세요.',
+    email:'이메일', password:'비밀번호', loginBtn:'로그인', loginBtnBusy:'확인 중…',
+    loginFoot:'비밀번호 문제는 관리자에게 문의하세요.',
+    errEmpty:'이메일과 비밀번호를 모두 입력하세요.', errAuth:'이메일 또는 비밀번호가 올바르지 않습니다.',
+    errConn:'서버에 연결하지 못했습니다. WEBAPP_URL과 웹앱 배포 설정(모든 사용자 액세스)을 확인하세요.',
+    loadDash:'대시보드를 불러오는 중…',
+    dashFailTitle:'대시보드를 불러오지 못했습니다.',
+    dashFailBody:"<code>WEBAPP_URL</code> 값과, Apps Script 웹앱이 <b>'모든 사용자' 액세스</b>로 배포됐는지 확인하세요.",
+    dashFailDetail:'상세', toLogin:'로그인으로', logout:'로그아웃',
+    helloSuffix:'강사님 <small>의 학습 현황</small>',
+    statModules:'모듈 완료', statAvg:'평균 점수', statBooking:'모의강의 예약', open:'가능', locked:'잠금',
+    progressLab:'전체 진행률 {pct}% — 모듈 1개만 완료해도 모의강의 예약이 열립니다',
+    blockModules:'학습 모듈', blockModulesSub:'영상 → 퀴즈(70점 Pass) → 샘플수업 → POND 순서로 진행됩니다',
+    blockBooking:'모의강의 예약', blockBookingSub:'선착순 · 예약 즉시 관리자에게 알림이 전송됩니다',
+    catDone:'완료',
+    stepVideo:'① 영상', stepQuiz:'② 퀴즈', stepSample:'③ 샘플수업', stepPond:'④ POND',
+    watch:'영상 보기', prep:'준비중', prepSample:'준비 중',
+    quizTake:'퀴즈 풀기', quizRetake:'다시 풀기', retry:'재응시', wait:'대기',
+    lockAfterPass:'🔒 퀴즈 Pass 후', lockAfterSample:'🔒 샘플 후',
+    done:'완료 ✓', markDone:'완료 표시',
+    watched:'{n}/{m} 시청', sampleHead:'샘플수업 영상 {n}/{m} 시청',
+    sampleLockNote:'· 퀴즈 Pass 후 시청 가능', btnWatched:'시청 완료', btnWatchedDone:'시청 완료 ✓',
+    ribbonDone:'모듈 완료',
+    bookLockTitle:'아직 예약할 수 없습니다.', bookLockBody:'모듈을 1개 이상 완료하면 예약 슬롯이 열립니다.',
+    bookConfirmed:'예약이 확정되었습니다 —', bookChangeNote:'변경이 필요하면 관리자에게 문의하세요.',
+    bookOpenNote:'필수 모듈을 이수해 예약이 열렸습니다. 원하는 시간을 선택하세요.',
+    bookNoSlots:'현재 등록된 슬롯이 없습니다.', remain:'잔여', full:'마감', book:'예약',
+    bookGroupMeta:'· 예약 가능 {open}개 / 전체 {all}개', showFull:'마감된 슬롯 {n}개 보기', hideFull:'마감된 슬롯 숨기기',
+    toastCannot:'처리할 수 없습니다 (순서를 확인하세요).', toastSampleDone:'샘플수업 완료로 표시했습니다.',
+    toastPondDone:'POND 연습 완료로 표시했습니다.', toastErr:'처리 중 오류가 발생했습니다.',
+    toastAllWatched:'샘플수업을 모두 시청했습니다. 이제 POND를 진행하세요.', toastWatchedN:'시청 완료로 표시했습니다.',
+    toastSlotFull:'이미 마감된 슬롯입니다.', toastBooked:'예약이 확정되었습니다.', toastBookErr:'예약 중 오류가 발생했습니다.',
+    busy:'처리중…',
+    mentorTitle:'AI 멘토', mentorSub:'· 24시간 질문 가능',
+    mentorIntro:'안녕하세요! POND 사용법, R&R 가이드, 수업 준비 등 온보딩 관련해 궁금한 점을 평소 말하듯 물어보세요.',
+    mentorPlaceholder:'질문을 입력하세요', mentorSend:'전송', mentorTyping:'답변 작성 중…',
+    mentorFail:'답변을 가져오지 못했습니다.', mentorConnErr:'연결에 문제가 있습니다. 잠시 후 다시 시도해 주세요.'
+  },
+  en:{
+    pts:' pts',
+    loginTitle:'Teacher Login', loginLead:'Sign in with your registered email and password.',
+    email:'Email', password:'Password', loginBtn:'Sign in', loginBtnBusy:'Signing in…',
+    loginFoot:'For password issues, contact your administrator.',
+    errEmpty:'Please enter both email and password.', errAuth:'Incorrect email or password.',
+    errConn:'Couldn’t connect to the server. Check WEBAPP_URL and the web app deployment (access: Anyone).',
+    loadDash:'Loading dashboard…',
+    dashFailTitle:'Couldn’t load the dashboard.',
+    dashFailBody:'Check <code>WEBAPP_URL</code> and that the Apps Script web app is deployed with <b>“Anyone” access</b>.',
+    dashFailDetail:'Details', toLogin:'Back to login', logout:'Sign out',
+    helloSuffix:'<small>· Learning Status</small>',
+    statModules:'Modules done', statAvg:'Avg. score', statBooking:'Mock lesson booking', open:'Open', locked:'Locked',
+    progressLab:'Overall progress {pct}% — completing just one module opens mock lesson booking',
+    blockModules:'Learning Modules', blockModulesSub:'Order: Video → Quiz (Pass ≥70) → Sample Lessons → POND',
+    blockBooking:'Mock Lesson Booking', blockBookingSub:'First-come, first-served · the admin is notified as soon as you book',
+    catDone:'done',
+    stepVideo:'① Video', stepQuiz:'② Quiz', stepSample:'③ Sample Lessons', stepPond:'④ POND',
+    watch:'Watch', prep:'Coming soon', prepSample:'Coming soon',
+    quizTake:'Take quiz', quizRetake:'Retake', retry:'Retry', wait:'Pending',
+    lockAfterPass:'🔒 After quiz pass', lockAfterSample:'🔒 After samples',
+    done:'Done ✓', markDone:'Mark done',
+    watched:'{n}/{m} watched', sampleHead:'Sample lesson videos {n}/{m} watched',
+    sampleLockNote:'· Available after quiz pass', btnWatched:'Mark watched', btnWatchedDone:'Watched ✓',
+    ribbonDone:'Module done',
+    bookLockTitle:'Booking not available yet.', bookLockBody:'Complete at least one module to open booking slots.',
+    bookConfirmed:'Your booking is confirmed —', bookChangeNote:'Contact the admin if you need to change it.',
+    bookOpenNote:'Booking is open. Choose a time that works for you.',
+    bookNoSlots:'No slots are currently available.', remain:'Left', full:'Full', book:'Book',
+    bookGroupMeta:'· {open} open / {all} total', showFull:'Show {n} full slots', hideFull:'Hide full slots',
+    toastCannot:'Can’t process (check the step order).', toastSampleDone:'Marked the sample lesson as done.',
+    toastPondDone:'Marked POND practice as done.', toastErr:'Something went wrong.',
+    toastAllWatched:'All sample lessons watched. You can proceed to POND.', toastWatchedN:'Marked as watched.',
+    toastSlotFull:'That slot is already full.', toastBooked:'Your booking is confirmed.', toastBookErr:'Booking failed.',
+    busy:'Processing…',
+    mentorTitle:'AI Mentor', mentorSub:'· Ask anytime, 24/7',
+    mentorIntro:'Hi! Ask me anything about onboarding — POND, the R&R guide, lesson prep, and more — in plain language.',
+    mentorPlaceholder:'Type your question', mentorSend:'Send', mentorTyping:'Typing…',
+    mentorFail:'Couldn’t get a response.', mentorConnErr:'Connection problem. Please try again shortly.'
+  }
+};
+const LK="canb_lang";
+let _lang=null;
+function getLang(){ if(_lang) return _lang; try{ return localStorage.getItem(LK)==='en'?'en':'ko'; }catch(e){ return 'ko'; } }
+function setLang(l){ _lang=(l==='en'?'en':'ko'); try{ localStorage.setItem(LK,_lang); }catch(e){} document.documentElement.lang=_lang; }
+function T(k){ const l=getLang(); return (I18N[l]&&I18N[l][k]!==undefined)?I18N[l][k]:(I18N.ko[k]!==undefined?I18N.ko[k]:k); }
+function Tf(k,o){ let v=T(k); for(const x in o){ v=v.split('{'+x+'}').join(o[x]); } return v; }
+function setText(id,t){ const e=document.getElementById(id); if(e) e.textContent=t; }
+function applyStaticI18n(){
+  setText('lang-toggle', getLang()==='ko'?'EN':'한국어');
+  setText('m-title', T('mentorTitle'));
+  setText('m-sub', T('mentorSub'));
+  setText('m-intro', T('mentorIntro'));
+  setText('m-send', T('mentorSend'));
+  const inp=document.getElementById('m-input'); if(inp) inp.placeholder=T('mentorPlaceholder');
+}
+function toggleLang(){
+  setLang(getLang()==='ko'?'en':'ko');
+  applyStaticI18n();
+  if(document.body.classList.contains('authed') && DATA){ render(DATA); }
+  else { showLogin(); }
+}
+
 /* /exec 호출 헬퍼 (전부 GET) */
 async function api(params){
   const u = new URL(WEBAPP_URL);
@@ -237,6 +356,7 @@ async function api(params){
 
 /* ===== 진입점 ===== */
 function init(){
+  setLang(getLang()); applyStaticI18n();
   /* 테스트용 우회: ?teacher=T005 가 붙어 있으면 로그인 건너뛰고 바로 대시보드
      (백엔드 login 액션 완성 전 화면 미리보기용. 실서비스에선 링크에서 제거) */
   const t = new URLSearchParams(location.search).get("teacher");
@@ -260,21 +380,21 @@ function showLogin(){
   document.getElementById("app").innerHTML = `
   <div class="login-bg"><div class="login-card">
     <div class="eyebrow">CANB Smart Onboarding</div>
-    <h1>강사 로그인</h1>
-    <p class="lead">등록된 이메일과 비밀번호로 로그인하세요.</p>
+    <h1>${T('loginTitle')}</h1>
+    <p class="lead">${T('loginLead')}</p>
     <div class="field">
-      <label for="li-email">이메일</label>
+      <label for="li-email">${T('email')}</label>
       <input id="li-email" type="email" autocomplete="username" placeholder="name@example.com"
              onkeydown="if(event.key==='Enter')document.getElementById('li-pw').focus()" />
     </div>
     <div class="field">
-      <label for="li-pw">비밀번호</label>
-      <input id="li-pw" type="password" autocomplete="current-password" placeholder="비밀번호"
+      <label for="li-pw">${T('password')}</label>
+      <input id="li-pw" type="password" autocomplete="current-password" placeholder="${T('password')}"
              onkeydown="if(event.key==='Enter')handleLogin()" />
     </div>
-    <button class="login-btn" id="li-btn" onclick="handleLogin()">로그인</button>
+    <button class="login-btn" id="li-btn" onclick="handleLogin()">${T('loginBtn')}</button>
     <div class="login-err" id="li-err"></div>
-    <div class="login-foot">비밀번호 문제는 관리자에게 문의하세요.</div>
+    <div class="login-foot">${T('loginFoot')}</div>
   </div></div>`;
   setTimeout(()=>{ const e=document.getElementById("li-email"); if(e) e.focus(); },50);
 }
@@ -287,20 +407,20 @@ async function handleLogin(){
   const pw=document.getElementById("li-pw").value||"";
   const btn=document.getElementById("li-btn");
   document.getElementById("li-err").classList.remove("show");
-  if(!email || !pw){ loginErr("이메일과 비밀번호를 모두 입력하세요."); return; }
-  btn.disabled=true; btn.textContent="확인 중…";
+  if(!email || !pw){ loginErr(T('errEmpty')); return; }
+  btn.disabled=true; btn.textContent=T('loginBtnBusy');
   try{
     const r = await api({ action:"login", email, password:pw });
     if(r && r.ok){
       saveSession({ teacher:r.teacher, name:r.teacherName });
       enter(r.teacher, r.teacherName);
     }else{
-      loginErr((r && r.message) || "이메일 또는 비밀번호가 올바르지 않습니다.");
-      btn.disabled=false; btn.textContent="로그인";
+      loginErr((r && r.message) || T('errAuth'));
+      btn.disabled=false; btn.textContent=T('loginBtn');
     }
   }catch(e){
-    loginErr("서버에 연결하지 못했습니다. WEBAPP_URL과 웹앱 배포 설정(모든 사용자 액세스)을 확인하세요.");
-    btn.disabled=false; btn.textContent="로그인";
+    loginErr(T('errConn'));
+    btn.disabled=false; btn.textContent=T('loginBtn');
     console.error(e);
   }
 }
@@ -312,16 +432,16 @@ function logout(){
 
 /* ===== 대시보드 로드 ===== */
 async function loadDashboard(){
-  document.getElementById("app").innerHTML = `<div class="wrap"><div class="state"><div class="spinner"></div>대시보드를 불러오는 중…</div></div>`;
+  document.getElementById("app").innerHTML = `<div class="wrap"><div class="state"><div class="spinner"></div>${T('loadDash')}</div></div>`;
   try{
     DATA = await api({ teacher: currentTeacher });
     render(DATA);
   }catch(e){
     document.getElementById("app").innerHTML =
-      `<div class="wrap"><div class="err"><b>대시보드를 불러오지 못했습니다.</b><br>
-       <code>WEBAPP_URL</code> 값과, Apps Script 웹앱이 <b>'모든 사용자' 액세스</b>로 배포됐는지 확인하세요.<br>
-       <span style="color:#6b7488">상세: ${esc(String(e.message||e))}</span></div>
-       <div style="margin-top:14px"><button class="logout" style="position:static" onclick="logout()">로그인으로</button></div></div>`;
+      `<div class="wrap"><div class="err"><b>${T('dashFailTitle')}</b><br>
+       ${T('dashFailBody')}<br>
+       <span style="color:#6b7488">${T('dashFailDetail')}: ${esc(String(e.message||e))}</span></div>
+       <div style="margin-top:14px"><button class="logout" style="position:static" onclick="logout()">${T('toLogin')}</button></div></div>`;
     console.error(e);
   }
 }
@@ -344,31 +464,31 @@ function render(d){
   const html = `
   <div class="wrap">
   <header class="top">
-    <button class="logout" onclick="logout()">로그아웃</button>
+    <button class="logout" onclick="logout()">${T('logout')}</button>
     <div class="hello">
       <span class="eyebrow">CANB Smart Onboarding</span>
-      <h1>${esc(d.teacherName || currentName || currentTeacher)} 강사님 <small>의 학습 현황</small></h1>
+      <h1>${esc(d.teacherName || currentName || currentTeacher)} ${T('helloSuffix')}</h1>
     </div>
     <div class="stats">
-      <div class="stat"><div class="v">${completed}<span style="font-size:14px;color:#aeb9d6"> / ${total}</span></div><div class="k">모듈 완료</div></div>
-      <div class="stat"><div class="v">${avg}<span style="font-size:14px;color:#aeb9d6">${avg==="—"?"":"점"}</span></div><div class="k">평균 점수</div></div>
-      <div class="stat"><div class="v" style="color:${d.bookingEligible?'#9cf2a0':'#aeb9d6'}">${d.bookingEligible?'가능':'잠금'}</div><div class="k">모의강의 예약</div></div>
+      <div class="stat"><div class="v">${completed}<span style="font-size:14px;color:#aeb9d6"> / ${total}</span></div><div class="k">${T('statModules')}</div></div>
+      <div class="stat"><div class="v">${avg}<span style="font-size:14px;color:#aeb9d6">${avg==="—"?"":T('pts')}</span></div><div class="k">${T('statAvg')}</div></div>
+      <div class="stat"><div class="v" style="color:${d.bookingEligible?'#9cf2a0':'#aeb9d6'}">${d.bookingEligible?T('open'):T('locked')}</div><div class="k">${T('statBooking')}</div></div>
     </div>
     <div class="progress-line">
       <div class="bar"><i style="width:${pct}%"></i></div>
-      <div class="lab">전체 진행률 ${pct}% — 모듈 1개만 완료해도 모의강의 예약이 열립니다</div>
+      <div class="lab">${Tf('progressLab',{pct})}</div>
     </div>
   </header>
 
   <section class="block">
-    <div class="block-head"><h2><span class="accent"></span>학습 모듈</h2>
-      <span class="sub">영상 → 퀴즈(70점 Pass) → 샘플수업 → POND 순서로 진행됩니다</span></div>
+    <div class="block-head"><h2><span class="accent"></span>${T('blockModules')}</h2>
+      <span class="sub">${T('blockModulesSub')}</span></div>
     ${cats.map((c,ci)=>renderCat(c,ci,progMap)).join("")}
   </section>
 
   <section class="block">
-    <div class="block-head"><h2><span class="accent"></span>모의강의 예약</h2>
-      <span class="sub">선착순 · 예약 즉시 관리자에게 알림이 전송됩니다</span></div>
+    <div class="block-head"><h2><span class="accent"></span>${T('blockBooking')}</h2>
+      <span class="sub">${T('blockBookingSub')}</span></div>
     ${renderBooking(d)}
   </section>
   </div>`;
@@ -382,7 +502,7 @@ function renderCat(c, ci, progMap){
   return `
   <div class="cat${ci===0?' open':''}">
     <div class="cat-head" onclick="this.parentNode.classList.toggle('open')">
-      <div class="cat-title">${esc(c.name)} <span class="cat-count">${doneN}/${c.items.length} 완료</span></div>
+      <div class="cat-title">${esc(c.name)} <span class="cat-count">${doneN}/${c.items.length} ${T('catDone')}</span></div>
       <div class="cat-meta"><div class="mini-bar"><i style="width:${pct}%"></i></div><span class="chev">▸</span></div>
     </div>
     <div class="cat-body">${c.items.map(m=>renderModule(m, progMap[m.moduleId]||{})).join("")}</div>
@@ -390,38 +510,61 @@ function renderCat(c, ci, progMap){
 }
 
 function renderModule(m, p){
-  const passed=!!p.passed, sample=!!p.sampleDone, pond=!!p.pondDone, done=!!p.moduleComplete;
+  const passed=!!p.passed, pond=!!p.pondDone, done=!!p.moduleComplete;
+
+  // 샘플수업: 백엔드가 내려준 모듈별 샘플 목록 + 시청여부
+  const samples = (DATA && DATA.samplesByModule && DATA.samplesByModule[m.moduleId]) || [];
+  const hasSamples = samples.length>0;
+  const watchedN = samples.filter(s=>s.watched).length;
+  const sampleAllWatched = hasSamples && watchedN===samples.length;
+  const sampleSatisfied = !hasSamples || sampleAllWatched;   // 샘플 0개 모듈은 자동 충족(준비 중)
 
   const stepVideo = `
-    <div class="step"><span class="lab">${p.videoWatched?'✓ ':''}① 영상</span>
-      ${m.videoUrl?`<button class="step-btn b-open" onclick="openLink('${js(m.videoUrl)}')">영상 보기</button>`
-                  :`<button class="step-btn b-lock" disabled>준비중</button>`}
+    <div class="step"><span class="lab">${p.videoWatched?'✓ ':''}${T('stepVideo')}</span>
+      ${m.videoUrl?`<button class="step-btn b-open" onclick="openLink('${js(m.videoUrl)}')">${T('watch')}</button>`
+                  :`<button class="step-btn b-lock" disabled>${T('prep')}</button>`}
     </div>`;
 
   let quizState;
   if(passed)            quizState=`<span class="pill p-pass">Pass ${num(p.score)}</span>`;
-  else if(p.quizResult) quizState=`<span class="pill p-retry">재응시 ${num(p.score)}</span>`;
-  else                  quizState=`<span class="pill p-wait">대기</span>`;
+  else if(p.quizResult) quizState=`<span class="pill p-retry">${T('retry')} ${num(p.score)}</span>`;
+  else                  quizState=`<span class="pill p-wait">${T('wait')}</span>`;
   const stepQuiz = `
-    <div class="step"><span class="lab">② 퀴즈</span>
-      ${m.quizUrl?`<button class="step-btn b-open" onclick="openLink('${js(m.quizUrl)}')">${passed?'다시 풀기':'퀴즈 풀기'}</button>`
-                 :`<button class="step-btn b-lock" disabled>준비중</button>`}
+    <div class="step"><span class="lab">${T('stepQuiz')}</span>
+      ${m.quizUrl?`<button class="step-btn b-open" onclick="openLink('${js(m.quizUrl)}')">${passed?T('quizRetake'):T('quizTake')}</button>`
+                 :`<button class="step-btn b-lock" disabled>${T('prep')}</button>`}
       ${quizState}
     </div>`;
 
   const stepSample = `
-    <div class="step"><span class="lab">③ 샘플수업</span>
-      ${ sample?`<button class="step-btn b-done" disabled>완료 ✓</button>`
-        : passed?`<button class="step-btn b-do" onclick="doAction('sampleComplete','${js(m.moduleId)}',this)">완료 표시</button>`
-                :`<button class="step-btn b-lock" disabled>🔒 퀴즈 Pass 후</button>` }
+    <div class="step"><span class="lab">${T('stepSample')}</span>
+      ${ !passed ? `<button class="step-btn b-lock" disabled>${T('lockAfterPass')}</button>`
+        : !hasSamples ? `<button class="step-btn b-lock" disabled>${T('prepSample')}</button>`
+        : sampleAllWatched ? `<button class="step-btn b-done" disabled>${T('done')}</button>`
+        : `<span class="pill p-wait">${Tf('watched',{n:watchedN,m:samples.length})}</span>` }
     </div>`;
 
   const stepPond = `
-    <div class="step"><span class="lab">④ POND</span>
-      ${ pond?`<button class="step-btn b-done" disabled>완료 ✓</button>`
-        : sample?`<button class="step-btn b-do" onclick="doAction('pondComplete','${js(m.moduleId)}',this)">완료 표시</button>`
-                :`<button class="step-btn b-lock" disabled>🔒 샘플 후</button>` }
+    <div class="step"><span class="lab">${T('stepPond')}</span>
+      ${ pond?`<button class="step-btn b-done" disabled>${T('done')}</button>`
+        : (passed && sampleSatisfied)?`<button class="step-btn b-do" onclick="doAction('pondComplete','${js(m.moduleId)}',this)">${T('markDone')}</button>`
+                :`<button class="step-btn b-lock" disabled>${T('lockAfterSample')}</button>` }
     </div>`;
+
+  const sampleListHtml = hasSamples ? `
+    <div class="sample-list">
+      <div class="sample-head">${Tf('sampleHead',{n:watchedN,m:samples.length})}${ passed?'':' <span class="sl-lock">'+T('sampleLockNote')+'</span>'}</div>
+      ${samples.map(sx=>`
+        <div class="sample-row">
+          <span class="sl-title">${esc(sx.title)}</span>
+          <span class="sl-btns">
+            <button class="step-btn b-open" onclick="openLink('${js(sx.url)}')" ${passed?'':'disabled'}>${T('watch')}</button>
+            ${ sx.watched
+                ? `<button class="step-btn b-done" disabled>${T('btnWatchedDone')}</button>`
+                : `<button class="step-btn b-do" onclick="doSampleWatched('${js(sx.sampleId)}',this)" ${passed?'':'disabled'}>${T('btnWatched')}</button>` }
+          </span>
+        </div>`).join("")}
+    </div>` : '';
 
   return `
   <div class="mod${done?' done':''}">
@@ -431,9 +574,10 @@ function renderModule(m, p){
         <div class="mod-title">${esc(m.title)}</div>
         ${m.target?`<span class="mod-target">${esc(m.target)}</span>`:''}
       </div>
-      ${done?`<span class="ribbon">모듈 완료</span>`:''}
+      ${done?`<span class="ribbon">${T('ribbonDone')}</span>`:''}
     </div>
     <div class="steps">${stepVideo}${stepQuiz}${stepSample}${stepPond}</div>
+    ${sampleListHtml}
   </div>`;
 }
 
@@ -441,15 +585,15 @@ function renderBooking(d){
   if(!d.bookingEligible){
     return `<div class="book-card"><div class="book-locked">
       <div class="ic">🔒</div>
-      <div><b style="color:var(--ink)">아직 예약할 수 없습니다.</b><br>모듈을 1개 이상 완료하면 예약 슬롯이 열립니다.</div>
+      <div><b style="color:var(--ink)">${T('bookLockTitle')}</b><br>${T('bookLockBody')}</div>
     </div></div>`;
   }
   if(d.myBooking){
     const b=d.myBooking;
     return `<div class="book-card"><div class="mybooking">
       <span class="ic">📅</span>
-      <div>예약이 확정되었습니다 — <b>${esc(b.when)}</b> · ${esc(b.place)}
-      <div style="font-size:12px;color:var(--muted);margin-top:3px">변경이 필요하면 관리자에게 문의하세요.</div></div>
+      <div>${T('bookConfirmed')} <b>${esc(b.when)}</b> · ${esc(b.place)}
+      <div style="font-size:12px;color:var(--muted);margin-top:3px">${T('bookChangeNote')}</div></div>
     </div></div>`;
   }
   const slots=d.availableSlots||[]; const groups={};
@@ -461,24 +605,25 @@ function renderBooking(d){
     const slotBtn=s=>{
       const isFull=(s.booked||0)>=(s.capacity||0);
       return `<div class="slot${isFull?' full':''}">
-        <div><div class="w">${esc(s.when)}</div><div class="c">잔여 ${Math.max(0,(s.capacity||0)-(s.booked||0))} / ${s.capacity||0}</div></div>
-        ${isFull?`<button disabled>마감</button>`:`<button onclick="doBook('${js(s.slotId)}',this)">예약</button>`}
+        <div><div class="w">${esc(s.when)}</div><div class="c">${T('remain')} ${Math.max(0,(s.capacity||0)-(s.booked||0))} / ${s.capacity||0}</div></div>
+        ${isFull?`<button disabled>${T('full')}</button>`:`<button onclick="doBook('${js(s.slotId)}',this)">${T('book')}</button>`}
       </div>`;
     };
+    const showLbl=js(Tf('showFull',{n:full.length})), hideLbl=js(T('hideFull'));
     return `<div class="place-group">
-      <h4>${esc(place)} <span class="n">· 예약 가능 ${open.length}개 / 전체 ${arr.length}개</span></h4>
+      <h4>${esc(place)} <span class="n">${Tf('bookGroupMeta',{open:open.length,all:arr.length})}</span></h4>
       <div class="slots">${open.map(slotBtn).join("")}</div>
       ${full.length?`<button class="toggle-full" onclick="
           const el=document.getElementById('full-${gi}'); el.style.display=el.style.display==='grid'?'none':'grid';
-          this.textContent=el.style.display==='grid'?'마감된 슬롯 숨기기':'마감된 슬롯 ${full.length}개 보기';">
-          마감된 슬롯 ${full.length}개 보기</button>
+          this.textContent=el.style.display==='grid'?'${hideLbl}':'${showLbl}';">
+          ${Tf('showFull',{n:full.length})}</button>
         <div class="slots" id="full-${gi}" style="display:none; margin-top:8px">${full.map(slotBtn).join("")}</div>`:``}
     </div>`;
   }).join("");
 
   return `<div class="book-card">
-    <div style="font-size:13px;color:var(--muted);margin-bottom:4px">필수 모듈을 이수해 예약이 열렸습니다. 원하는 시간을 선택하세요.</div>
-    ${groupHtml || '<div style="color:var(--muted);padding:10px 0">현재 등록된 슬롯이 없습니다.</div>'}
+    <div style="font-size:13px;color:var(--muted);margin-bottom:4px">${T('bookOpenNote')}</div>
+    ${groupHtml || '<div style="color:var(--muted);padding:10px 0">'+T('bookNoSlots')+'</div>'}
   </div>`;
 }
 
@@ -487,18 +632,28 @@ async function doAction(action, moduleId, btn){
   setBusy(btn,true);
   try{
     const r=await api({ action, teacher:currentTeacher, module:moduleId });
-    if(r && r.ok===false){ toast(r.message||"처리할 수 없습니다 (순서를 확인하세요).",true); setBusy(btn,false); return; }
-    toast(action==='sampleComplete'?"샘플수업 완료로 표시했습니다.":"POND 연습 완료로 표시했습니다.");
+    if(r && r.ok===false){ toast(r.message||T('toastCannot'),true); setBusy(btn,false); return; }
+    toast(action==='sampleComplete'?T('toastSampleDone'):T('toastPondDone'));
     await loadDashboard();
-  }catch(e){ toast("처리 중 오류가 발생했습니다.",true); setBusy(btn,false); console.error(e); }
+  }catch(e){ toast(T('toastErr'),true); setBusy(btn,false); console.error(e); }
+}
+async function doSampleWatched(sampleId, btn){
+  setBusy(btn,true);
+  try{
+    const r=await api({ action:"sampleWatched", teacher:currentTeacher, sample:sampleId });
+    if(r && r.error){ toast(r.error,true); setBusy(btn,false); return; }
+    if(r && r.allWatched){ toast(T('toastAllWatched')); }
+    else { toast(T('toastWatchedN')+" ("+(r.watchedCount||0)+"/"+(r.totalSamples||0)+")"); }
+    await loadDashboard();
+  }catch(e){ toast(T('toastErr'),true); setBusy(btn,false); console.error(e); }
 }
 async function doBook(slotId, btn){
   setBusy(btn,true);
   try{
     const r=await api({ action:"bookSlot", teacher:currentTeacher, slot:slotId });
-    if(r && r.ok===false){ toast(r.message||"이미 마감된 슬롯입니다.",true); await loadDashboard(); return; }
-    toast("예약이 확정되었습니다."); await loadDashboard();
-  }catch(e){ toast("예약 중 오류가 발생했습니다.",true); setBusy(btn,false); console.error(e); }
+    if(r && r.ok===false){ toast(r.message||T('toastSlotFull'),true); await loadDashboard(); return; }
+    toast(T('toastBooked')); await loadDashboard();
+  }catch(e){ toast(T('toastBookErr'),true); setBusy(btn,false); console.error(e); }
 }
 
 /* ===== AI 멘토 ===== */
@@ -511,12 +666,12 @@ async function sendChat(){
   if(!text) return;
   inp.value=""; pushMsg(text,"me"); const typing=pushTyping();
   try{
-    const r=await api({ action:"chat", message:text });
+    const r=await api({ action:"chat", message:text, lang:getLang() });
     typing.remove();
-    const reply=(r && (r.reply||r.answer||r.text)) || (typeof r==="string"?r:"답변을 가져오지 못했습니다.");
+    const reply=(r && (r.reply||r.answer||r.text)) || (typeof r==="string"?r:T('mentorFail'));
     const img=r && (r.imageUrl||r.image||r["이미지링크"]);
     pushMsg(reply,"bot",img);
-  }catch(e){ typing.remove(); pushMsg("연결에 문제가 있습니다. 잠시 후 다시 시도해 주세요.","bot"); console.error(e); }
+  }catch(e){ typing.remove(); pushMsg(T('mentorConnErr'),"bot"); console.error(e); }
 }
 function pushMsg(text,who,img){
   const b=document.getElementById("m-body"); const el=document.createElement("div");
@@ -526,13 +681,13 @@ function pushMsg(text,who,img){
 }
 function pushTyping(){
   const b=document.getElementById("m-body"); const el=document.createElement("div");
-  el.className="typing"; el.textContent="답변 작성 중…"; b.appendChild(el); b.scrollTop=b.scrollHeight; return el;
+  el.className="typing"; el.textContent=T('mentorTyping'); b.appendChild(el); b.scrollTop=b.scrollHeight; return el;
 }
 
 /* ===== 유틸 ===== */
 function openLink(u){ window.open(u,"_blank","noopener"); }
-function setBusy(btn,on){ if(!btn) return; btn.disabled=on; if(on){ btn._t=btn.textContent; btn.textContent="처리중…"; } else if(btn._t){ btn.textContent=btn._t; } }
-function num(s){ return (s===0||s)?`${s}점`:""; }
+function setBusy(btn,on){ if(!btn) return; btn.disabled=on; if(on){ btn._t=btn.textContent; btn.textContent=T('busy'); } else if(btn._t){ btn.textContent=btn._t; } }
+function num(s){ return (s===0||s)? s+T('pts') : ""; }
 function esc(s){ return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 function js(s){ return String(s??"").replace(/'/g,"\\'"); }
 let toastTimer;
