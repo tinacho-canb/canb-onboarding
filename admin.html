@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -226,7 +227,7 @@ function renderStatus(r){
   const total = r.total || 45;
   const scope = r.campus || (AUTH.campus || "");
   const rowsHtml = list.length ? list.map(t=>statusRow(t,total)).join("") :
-    `<tr><td colspan="6"><div class="empty" style="border:none;padding:26px">${esc(r.message||"표시할 강사가 없습니다.")}</div></td></tr>`;
+    `<tr><td colspan="7"><div class="empty" style="border:none;padding:26px">${esc(r.message||"표시할 강사가 없습니다.")}</div></td></tr>`;
 
   document.getElementById("app").innerHTML = `
   <div class="wrap">
@@ -245,6 +246,7 @@ function renderStatus(r){
             <th>강사</th>
             <th class="col-hide">캠퍼스</th>
             <th>이수 진도</th>
+            <th>샘플 시청</th>
             <th>평균점수</th>
             <th>예약</th>
             <th class="col-hide">마지막 갱신</th>
@@ -255,6 +257,7 @@ function renderStatus(r){
     </div>
     <p class="small" style="margin:12px 2px 0">
       · <b>이수 진도</b>는 영상·퀴즈·샘플·POND를 모두 끝낸 '완전 이수' 모듈 수입니다. 괄호 안은 퀴즈만 통과한 수입니다.<br>
+      · <b>샘플 시청</b>은 퀴즈를 통과한 모듈에 등록된 샘플 영상 중 시청 완료한 수입니다. (시청 / 전체)<br>
       · 분모는 현재 전체 ${total}개 고정이며, 추후 한국인/원어민 담당 과목별 기준으로 분리 예정입니다.<br>
       · 데이터는 조회 시점(${esc(r.generatedAt||"")}) 기준 실시간 집계입니다.
     </p>
@@ -265,6 +268,11 @@ function statusRow(t, total){
   const complete = Number(t.complete||0);
   const passed = Number(t.passed||0);
   const pct = total>0 ? Math.min(100, Math.round(complete/total*100)) : 0;
+  const sw = Number(t.sampleWatched||0);
+  const stot = Number(t.sampleTotal||0);
+  const sampleCell = stot>0
+    ? `<span class="tnum"><b>${sw}</b> / ${stot}</span>` + (sw>=stot ? ` <span class="chip chip-y">완료</span>` : "")
+    : `<span class="small">없음</span>`;
   const book = t.bookingEligible
     ? `<span class="chip chip-y">가능</span>`
     : `<span class="chip chip-n">대기</span>`;
@@ -279,6 +287,7 @@ function statusRow(t, total){
       </div>
       <span class="small">퀴즈통과 ${passed} · POND ${Number(t.pond||0)}</span>
     </td>
+    <td>${sampleCell}</td>
     <td class="tnum">${Number(t.avgScore||0)}</td>
     <td>${book}</td>
     <td class="col-hide small">${esc(t.lastUpdate||"-")}</td>
