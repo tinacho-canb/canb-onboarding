@@ -7,14 +7,19 @@
 <title>CANB 관리자</title>
 <style>
   :root{
-    --navy:#14275c; --navy-deep:#0d1b3e; --ink:#1c2540;
-    --teal:#0bb8cf; --teal-d:#0894a8;
-    --lime:#6db33f; --lime-bg:#eaf5e1;
-    --amber:#e8961e; --amber-bg:#fdf2dd;
+    /* CANB 브랜드 — 차콜 베이스 + 마젠타 포인트, 틸/앰버 소량 */
+    --magenta:#C1147E; --magenta-d:#9e1066; --magenta-bg:#fbe8f2;
+    --teal:#0CA9B0; --teal-d:#0a8e94; --teal-bg:#e3f5f6;
+    --amber:#F2A900; --amber-d:#c98c00; --amber-bg:#fdf3da;
+    /* 차콜 헤더 */
+    --navy:#2b2d33; --navy-deep:#1c1e22;
+    --ink:#23252b;
+    /* 키컬러 역할 매핑(기존 클래스 호환용) */
+    --lime:#0CA9B0; --lime-bg:#e3f5f6;            /* '완료/가능' = 틸 */
     --red:#d8475f; --red-bg:#fbe6ea;
-    --lock:#9aa3b8; --lock-bg:#eef0f5;
-    --bg:#f4f6fb; --card:#fff; --line:#e3e7f0; --muted:#6b7488;
-    --shadow:0 1px 2px rgba(20,39,92,.06),0 6px 20px rgba(20,39,92,.06);
+    --lock:#9aa3b8; --lock-bg:#eef1f4;
+    --bg:#f5f6f8; --card:#fff; --line:#e6e8ec; --muted:#6b7079;
+    --shadow:0 1px 2px rgba(30,30,40,.05),0 6px 20px rgba(30,30,40,.06);
   }
   *{box-sizing:border-box}
   html,body{margin:0}
@@ -26,33 +31,35 @@
 
   /* 로그인 */
   .login-bg{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
-    background:linear-gradient(135deg,var(--navy),var(--navy-deep))}
+    background:linear-gradient(135deg,#2b2d33,#1c1e22)}
   .login-card{width:100%; max-width:380px; background:#fff; border-radius:18px; padding:34px 30px 30px; box-shadow:0 20px 60px rgba(0,0,0,.3)}
-  .login-card .eyebrow{font-size:11px; letter-spacing:.16em; color:var(--teal-d); text-transform:uppercase; font-weight:700}
-  .login-card h1{margin:6px 0 2px; font-size:21px; color:var(--navy); font-weight:800}
+  .login-card .eyebrow{font-size:11px; letter-spacing:.16em; color:var(--magenta); text-transform:uppercase; font-weight:700}
+  .login-card h1{margin:6px 0 2px; font-size:21px; color:var(--ink); font-weight:800}
   .login-card p.lead{margin:0 0 22px; font-size:13.5px; color:var(--muted)}
   .field{margin-bottom:14px}
   .field label{display:block; font-size:12.5px; font-weight:600; margin-bottom:6px}
   .field input{width:100%; border:1px solid var(--line); border-radius:10px; padding:11px 13px; font-size:14px; outline:none; font-family:inherit}
-  .field input:focus{border-color:var(--teal); box-shadow:0 0 0 3px rgba(11,184,207,.12)}
-  .login-btn{width:100%; margin-top:6px; background:var(--navy); color:#fff; font-weight:700; font-size:15px; padding:12px; border-radius:11px}
-  .login-btn:hover{background:#1d3576}
+  .field input:focus{border-color:var(--magenta); box-shadow:0 0 0 3px rgba(193,20,126,.12)}
+  .login-btn{width:100%; margin-top:6px; background:var(--magenta); color:#fff; font-weight:700; font-size:15px; padding:12px; border-radius:11px}
+  .login-btn:hover{background:var(--magenta-d)}
   .login-err{display:none; margin-top:14px; background:var(--red-bg); border:1px solid #f0c4cd; color:#9c2740; border-radius:10px; padding:10px 13px; font-size:13px}
   .login-err.show{display:block}
 
   /* 헤더 */
-  header.top{background:linear-gradient(135deg,var(--navy),var(--navy-deep)); color:#fff; border-radius:16px;
-    padding:22px 26px; box-shadow:var(--shadow); display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap}
+  header.top{background:var(--navy); color:#fff; border-radius:16px;
+    padding:20px 24px; box-shadow:var(--shadow); display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap}
+  header.top .brand{display:flex; align-items:center; gap:14px}
+  header.top .brand .logo{flex:none}
   header.top h1{margin:0; font-size:20px; font-weight:800}
-  header.top .eyebrow{font-size:11px; letter-spacing:.14em; color:#8fa6d6; text-transform:uppercase}
-  header.top .who{font-size:13px; color:#cdd7ef}
-  .logout{background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.18); color:#cdd7ef; font-size:12px; font-weight:600; padding:7px 13px; border-radius:8px}
-  .logout:hover{background:rgba(255,255,255,.18); color:#fff}
+  header.top .eyebrow{font-size:11px; letter-spacing:.14em; color:var(--magenta); text-transform:uppercase; font-weight:700}
+  header.top .who{font-size:13px; color:#b9bbc0; margin-top:2px}
+  .logout{background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.22); color:#e8e9ec; font-size:12px; font-weight:600; padding:7px 13px; border-radius:8px}
+  .logout:hover{background:rgba(255,255,255,.2); color:#fff}
 
   /* 탭 (super 전용) */
   .tabs{display:flex; gap:8px; margin:22px 2px 4px}
-  .tab{background:var(--lock-bg); color:var(--navy); font-size:13px; font-weight:700; padding:9px 16px; border-radius:9px}
-  .tab.active{background:var(--navy); color:#fff}
+  .tab{background:var(--lock-bg); color:var(--ink); font-size:13px; font-weight:700; padding:9px 16px; border-radius:9px}
+  .tab.active{background:var(--magenta); color:#fff}
 
   .bar{display:flex; align-items:center; justify-content:space-between; margin:24px 2px 12px; gap:10px; flex-wrap:wrap}
   .bar h2{margin:0; font-size:16px; color:var(--navy); font-weight:800}
@@ -83,14 +90,14 @@
   .eform textarea{min-height:62px; line-height:1.5}
   .eform .erow-save{display:flex; justify-content:flex-end; gap:10px; align-items:center; margin-top:4px}
   @media (max-width:680px){ .eform .frow{grid-template-columns:1fr; gap:4px} .eform label{padding-top:0} }
-  .save{background:var(--teal); color:#fff; font-weight:700; font-size:13.5px; padding:10px 18px; border-radius:9px; white-space:nowrap}
-  .save:hover{background:var(--teal-d)}
+  .save{background:var(--magenta); color:#fff; font-weight:700; font-size:13.5px; padding:10px 18px; border-radius:9px; white-space:nowrap}
+  .save:hover{background:var(--magenta-d)}
   @media (max-width:680px){ .form{grid-template-columns:1fr 1fr} .save{grid-column:1 / -1} }
 
   /* 이수 현황 표 */
   .tablecard{background:var(--card); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); overflow:hidden}
   .ttable{width:100%; border-collapse:collapse; font-size:13px}
-  .ttable th{background:#f7f9fd; color:var(--navy); font-weight:700; text-align:left; padding:11px 14px; border-bottom:1px solid var(--line); white-space:nowrap}
+  .ttable th{background:#f7f7f9; color:var(--ink); font-weight:700; text-align:left; padding:11px 14px; border-bottom:1px solid var(--line); white-space:nowrap}
   .ttable td{padding:11px 14px; border-bottom:1px solid var(--line); vertical-align:middle}
   .ttable tr:last-child td{border-bottom:none}
   .ttable tbody tr:hover{background:#fafbfe}
@@ -151,6 +158,12 @@ function showLogin(){
   clearSession(); AUTH = null;
   document.getElementById("app").innerHTML = `
   <div class="login-bg"><div class="login-card">
+    <svg width="64" height="30" viewBox="0 0 3228 1514" xmlns="http://www.w3.org/2000/svg" fill="var(--magenta)" fill-rule="evenodd" aria-label="CANB" style="margin-bottom:14px">
+        <path d="M2849.0,1512.5 L2823.5,1512.0 L2824.0,0.5 L2861.0,1.5 L2897.0,6.5 L2968.0,26.5 L3038.0,61.5 L3100.0,109.5 L3150.5,167.0 L3188.5,231.0 L3213.5,299.0 L3221.5,336.0 L3226.5,381.0 L3225.5,440.0 L3218.5,487.0 L3202.5,543.0 L3179.5,594.0 L3153.5,636.0 L3119.5,678.0 L3071.0,722.5 L3019.5,756.0 L3076.0,794.5 L3127.5,844.0 L3165.5,895.0 L3200.5,965.0 L3218.5,1026.0 L3226.5,1087.0 L3226.5,1132.0 L3222.5,1171.0 L3203.5,1246.0 L3180.5,1298.0 L3153.5,1342.0 L3118.5,1385.0 L3067.0,1431.5 L3014.0,1465.5 L2963.0,1488.5 L2903.0,1505.5 L2849.0,1512.5 Z"/>
+        <path d="M2621.0,1159.5 L2219.0,757.5 L1815.0,1159.5 L1814.5,749.0 L1819.5,692.0 L1830.5,643.0 L1852.5,585.0 L1882.5,532.0 L1917.5,487.0 L1948.0,456.5 L1980.0,430.5 L2015.0,407.5 L2054.0,387.5 L2125.0,363.5 L2193.0,353.5 L2244.0,353.5 L2281.0,357.5 L2358.0,377.5 L2387.0,389.5 L2433.0,414.5 L2494.0,461.5 L2536.5,508.0 L2570.5,559.0 L2598.5,620.0 L2614.5,678.0 L2621.5,734.0 L2621.0,1159.5 Z"/>
+        <path d="M1663.0,1159.5 L857.5,1159.0 L1260.0,353.5 L1663.0,1159.5 Z"/>
+        <path d="M0.0,748.5 L1.5,715.0 L10.5,662.0 L24.5,616.0 L37.5,585.0 L74.5,522.0 L102.5,487.0 L133.0,456.5 L190.0,413.5 L253.0,381.5 L329.0,359.5 L365.0,354.5 L403.0,353.5 L403.5,756.0 L806.0,756.5 L806.5,779.0 L796.5,849.0 L783.5,893.0 L769.5,927.0 L745.5,971.0 L725.5,1000.0 L699.5,1031.0 L668.0,1061.5 L605.0,1106.5 L535.0,1138.5 L497.0,1149.5 L452.0,1157.5 L376.0,1159.5 L334.0,1154.5 L294.0,1145.5 L230.0,1121.5 L169.0,1085.5 L134.0,1057.5 L102.5,1026.0 L58.5,967.0 L27.5,905.0 L13.5,863.0 L5.5,827.0 L0.0,764.5 Z"/>
+      </svg>
     <div class="eyebrow">CANB Admin</div>
     <h1>관리자 로그인</h1>
     <p class="lead">총괄 또는 캠퍼스 관리자 계정으로 로그인하세요.</p>
@@ -205,10 +218,18 @@ function chrome(activeView){
     </div>` : "";
   return `
     <header class="top">
-      <div>
-        <div class="eyebrow">CANB Admin</div>
-        <h1>${AUTH.role==="super" ? "관리자 콘솔" : "캠퍼스 이수 현황"}</h1>
-        <div class="who">${esc(AUTH.name||AUTH.email)} · ${roleLabel}${AUTH.role==="campus"&&AUTH.campus?(" · "+esc(AUTH.campus)):""}</div>
+      <div class="brand">
+        <svg width="58" height="27" viewBox="0 0 3228 1514" xmlns="http://www.w3.org/2000/svg" fill="var(--magenta)" fill-rule="evenodd" aria-label="CANB">
+        <path d="M2849.0,1512.5 L2823.5,1512.0 L2824.0,0.5 L2861.0,1.5 L2897.0,6.5 L2968.0,26.5 L3038.0,61.5 L3100.0,109.5 L3150.5,167.0 L3188.5,231.0 L3213.5,299.0 L3221.5,336.0 L3226.5,381.0 L3225.5,440.0 L3218.5,487.0 L3202.5,543.0 L3179.5,594.0 L3153.5,636.0 L3119.5,678.0 L3071.0,722.5 L3019.5,756.0 L3076.0,794.5 L3127.5,844.0 L3165.5,895.0 L3200.5,965.0 L3218.5,1026.0 L3226.5,1087.0 L3226.5,1132.0 L3222.5,1171.0 L3203.5,1246.0 L3180.5,1298.0 L3153.5,1342.0 L3118.5,1385.0 L3067.0,1431.5 L3014.0,1465.5 L2963.0,1488.5 L2903.0,1505.5 L2849.0,1512.5 Z"/>
+        <path d="M2621.0,1159.5 L2219.0,757.5 L1815.0,1159.5 L1814.5,749.0 L1819.5,692.0 L1830.5,643.0 L1852.5,585.0 L1882.5,532.0 L1917.5,487.0 L1948.0,456.5 L1980.0,430.5 L2015.0,407.5 L2054.0,387.5 L2125.0,363.5 L2193.0,353.5 L2244.0,353.5 L2281.0,357.5 L2358.0,377.5 L2387.0,389.5 L2433.0,414.5 L2494.0,461.5 L2536.5,508.0 L2570.5,559.0 L2598.5,620.0 L2614.5,678.0 L2621.5,734.0 L2621.0,1159.5 Z"/>
+        <path d="M1663.0,1159.5 L857.5,1159.0 L1260.0,353.5 L1663.0,1159.5 Z"/>
+        <path d="M0.0,748.5 L1.5,715.0 L10.5,662.0 L24.5,616.0 L37.5,585.0 L74.5,522.0 L102.5,487.0 L133.0,456.5 L190.0,413.5 L253.0,381.5 L329.0,359.5 L365.0,354.5 L403.0,353.5 L403.5,756.0 L806.0,756.5 L806.5,779.0 L796.5,849.0 L783.5,893.0 L769.5,927.0 L745.5,971.0 L725.5,1000.0 L699.5,1031.0 L668.0,1061.5 L605.0,1106.5 L535.0,1138.5 L497.0,1149.5 L452.0,1157.5 L376.0,1159.5 L334.0,1154.5 L294.0,1145.5 L230.0,1121.5 L169.0,1085.5 L134.0,1057.5 L102.5,1026.0 L58.5,967.0 L27.5,905.0 L13.5,863.0 L5.5,827.0 L0.0,764.5 Z"/>
+      </svg>
+        <div>
+          <div class="eyebrow">CANB Admin</div>
+          <h1>${AUTH.role==="super" ? "관리자 콘솔" : "캠퍼스 이수 현황"}</h1>
+          <div class="who">${esc(AUTH.name||AUTH.email)} · ${roleLabel}${AUTH.role==="campus"&&AUTH.campus?(" · "+esc(AUTH.campus)):""}</div>
+        </div>
       </div>
       <button class="logout" onclick="logout()">로그아웃</button>
     </header>
@@ -227,7 +248,7 @@ async function loadStatus(){
     renderStatus(r);
   }catch(e){
     document.getElementById("app").innerHTML = `<div class="wrap">${chrome("status")}<div class="err"><b>이수 현황을 불러오지 못했습니다.</b><br><span style="color:#6b7488">${esc(String(e.message||e))}</span></div>
-      <div style="margin-top:14px"><button class="logout" style="background:#eef0f5;color:#14275c" onclick="logout()">로그인으로</button></div></div>`;
+      <div style="margin-top:14px"><button class="logout" style="background:#eef1f4;color:var(--ink)" onclick="logout()">로그인으로</button></div></div>`;
     console.error(e);
   }
 }
@@ -317,7 +338,7 @@ async function loadReservations(){
     renderReservations(r.reservations || []);
   }catch(e){
     document.getElementById("app").innerHTML = `<div class="wrap">${chrome("results")}<div class="err"><b>예약 목록을 불러오지 못했습니다.</b><br><span style="color:#6b7488">${esc(String(e.message||e))}</span></div>
-      <div style="margin-top:14px"><button class="logout" style="background:#eef0f5;color:#14275c" onclick="logout()">로그인으로</button></div></div>`;
+      <div style="margin-top:14px"><button class="logout" style="background:#eef1f4;color:var(--ink)" onclick="logout()">로그인으로</button></div></div>`;
     console.error(e);
   }
 }
