@@ -424,9 +424,9 @@ function renderModule(m, p){
   const sampleAllWatched = hasSamples && watchedN===samples.length;
   const sampleSatisfied = !hasSamples || sampleAllWatched;   // 샘플 0개 모듈은 자동 충족(준비 중)
 
-  const stepVideo = `
+ const stepVideo = `
     <div class="step"><span class="lab">${p.videoWatched?'✓ ':''}① 영상</span>
-      ${m.videoUrl?`<button class="step-btn b-open" onclick="openLink('${js(m.videoUrl)}')">영상 보기</button>`
+      ${m.videoUrl?`<button class="step-btn b-open" onclick="openLink('${js(m.videoUrl)}');markVideoOpened('${js(m.moduleId)}')">영상 보기</button>`
                   :`<button class="step-btn b-lock" disabled>준비중</button>`}
     </div>`;
 
@@ -442,7 +442,7 @@ const isReference = !m.quizUrl && !hasSamples;   // 퀴즈·샘플이 둘 다 �
       <span class="pill p-na">해당 없음</span>
     </div>` : `
     <div class="step"><span class="lab">② 퀴즈</span>
-      ${m.quizUrl?`<button class="step-btn b-open" onclick="openLink('${js(m.quizUrl)}')">${passed?'다시 풀기':'퀴즈 풀기'}</button>`
+${m.quizUrl?`<button class="step-btn b-open" onclick="tryOpenQuiz('${js(m.moduleId)}','${js(m.quizUrl)}',${m.videoDuration||0})">${passed?'다시 풀기':'퀴즈 풀기'}</button>`
                  :`<button class="step-btn b-lock" disabled>준비중</button>`}
       ${quizState}
     </div>`;
@@ -475,10 +475,10 @@ const isReference = !m.quizUrl && !hasSamples;   // 퀴즈·샘플이 둘 다 �
         <div class="sample-row">
           <span class="sl-title">${esc(s.title)}</span>
           <span class="sl-btns">
-            <button class="step-btn b-open" onclick="openLink('${js(s.url)}')" ${passed?'':'disabled'}>영상 보기</button>
+            <button class="step-btn b-open" onclick="openLink('${js(s.url)}');markVideoOpened('${js(s.sampleId)}')" ${passed?'':'disabled'}>영상 보기</button>
             ${ s.watched
                 ? `<button class="step-btn b-done" disabled>시청 완료 ✓</button>`
-                : `<button class="step-btn b-do" onclick="doSampleWatched('${js(s.sampleId)}',this)" ${passed?'':'disabled'}>시청 완료</button>` }
+                : `<button class="step-btn b-do" onclick="trySampleWatched('${js(s.sampleId)}',${s.duration||0},this)" ${passed?'':'disabled'}>시청 완료</button>` }
           </span>
         </div>`).join("")}
     </div>` : '';
@@ -602,6 +602,30 @@ function pushTyping(){
 
 /* ===== 유틸 ===== */
 function openLink(u){ window.open(u,"_blank","noopener"); }
+  function markVideoOpened(moduleId){
+  try{ sessionStorage.setItem('vwatch_'+currentTeacher+'_'+moduleId, String(Date.now())); }catch(e){}
+}
+function videoWatchOk(moduleId, durationSec){
+  if(!durationSec) return true;
+  let start=0;
+  try{ start=Number(sessionStorage.getItem('vwatch_'+currentTeacher+'_'+moduleId))||0; }catch(e){}
+  if(!start) return false;
+  return (Date.now()-start)/1000 >= durationSec*0.7;
+}
+function tryOpenQuiz(moduleId, quizUrl, durationSec){
+  if(!videoWatchOk(moduleId, durationSec)){
+    toast('영상 시청을 완료하세요.', true);
+    return;
+  }
+  openLink(quizUrl);
+}
+function trySampleWatched(sampleId, durationSec, btn){
+  if(!videoWatchOk(sampleId, durationSec)){
+    toast('영상 시청을 완료하세요.', true);
+    return;
+  }
+  doSampleWatched(sampleId, btn);
+}
 function setBusy(btn,on){ if(!btn) return; btn.disabled=on; if(on){ btn._t=btn.textContent; btn.textContent="처리중…"; } else if(btn._t){ btn.textContent=btn._t; } }
 function num(s){ return (s===0||s)?`${s}점`:""; }
 function esc(s){ return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
