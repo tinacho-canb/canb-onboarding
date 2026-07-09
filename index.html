@@ -167,9 +167,11 @@
   .vmodal-player-wrap{position:relative; width:100%; aspect-ratio:16/9; background:#000}
   .vmodal-player-wrap #yt-player{position:absolute; inset:0; width:100%; height:100%}
   .vmodal-shield{position:absolute; inset:0; cursor:pointer}
- .vmodal-playbtn{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:64px; height:64px; border-radius:50%; background:rgba(255,255,255,.92); color:var(--navy); font-size:22px; display:flex; align-items:center; justify-content:center; z-index:2}
-  .vmodal-fsbtn{position:absolute; bottom:12px; right:12px; width:40px; height:40px; border-radius:10px; background:rgba(0,0,0,.55); color:#fff; font-size:17px; display:flex; align-items:center; justify-content:center; z-index:2}
+ .vmodal-playbtn{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:64px; height:64px; border-radius:50%; background:rgba(255,255,255,.92); color:var(--navy); font-size:22px; display:flex; align-items:center; justify-content:center; z-index:2; opacity:1; transition:opacity .25s; cursor:pointer}
+  .vmodal-fsbtn{position:absolute; bottom:12px; right:12px; width:40px; height:40px; border-radius:10px; background:rgba(0,0,0,.55); color:#fff; font-size:17px; display:flex; align-items:center; justify-content:center; z-index:2; opacity:1; transition:opacity .25s}
   .vmodal-fsbtn:hover{background:rgba(0,0,0,.75)}
+  .vmodal-player-wrap.playing .vmodal-playbtn, .vmodal-player-wrap.playing .vmodal-fsbtn{opacity:0; pointer-events:none}
+  .vmodal-player-wrap.playing.show-controls .vmodal-playbtn, .vmodal-player-wrap.playing.show-controls .vmodal-fsbtn{opacity:1; pointer-events:auto}
   .vmodal-foot{padding:10px 18px; font-size:12.5px; color:var(--muted); background:#fbfcfe}
 
   /* ===== AI 멘토 (로그인 후에만 노출) ===== */
@@ -631,10 +633,19 @@ function pushTyping(){
 
 /* ===== 유틸 ===== */
 function openLink(u){ window.open(u,"_blank","noopener"); }
-let ytPlayer=null, ytCurrentKind=null, ytCurrentId=null, ytPollTimer=null;
+let ytPlayer=null, ytCurrentKind=null, ytCurrentId=null, ytPollTimer=null, ctrlHideTimer=null;
 function extractYoutubeId(url){
   const m = String(url||'').match(/(?:youtu\.be\/|v=)([A-Za-z0-9_-]{6,})/);
   return m ? m[1] : '';
+}
+function showControls(){
+  const wrap = document.querySelector('.vmodal-player-wrap');
+  if(!wrap) return;
+  wrap.classList.add('show-controls');
+  clearTimeout(ctrlHideTimer);
+  if(wrap.classList.contains('playing')){
+    ctrlHideTimer = setTimeout(()=>{ wrap.classList.remove('show-controls'); }, 2200);
+  }
 }
 function openVideoModal(id, url, kind, title){
   const vid = extractYoutubeId(url);
@@ -643,6 +654,8 @@ function openVideoModal(id, url, kind, title){
   document.getElementById('vmodal-title').textContent = title||'영상 시청';
   document.getElementById('vmodal-status').textContent = '영상을 시청해 주세요 (70% 이상 시청 시 자동 잠금 해제)';
   document.getElementById('video-modal').classList.add('open');
+  const wrap = document.querySelector('.vmodal-player-wrap');
+  if(wrap){ wrap.classList.remove('playing'); wrap.classList.add('show-controls'); bindControlHover(wrap); }
   if(window.YT && window.YT.Player){
     createYtPlayer(vid);
   } else {
@@ -652,6 +665,13 @@ function openVideoModal(id, url, kind, title){
       document.head.appendChild(s);
     }
   }
+}
+function bindControlHover(wrap){
+  if(wrap._hoverBound) return;
+  wrap._hoverBound = true;
+  wrap.addEventListener('mousemove', showControls);
+  wrap.addEventListener('touchstart', showControls, {passive:true});
+  wrap.addEventListener('click', showControls);
 }
 function createYtPlayer(vid){
   if(ytPlayer){ try{ ytPlayer.loadVideoById(vid); }catch(e){} return; }
@@ -668,8 +688,17 @@ function toggleVideoPlay(){
 }
 function onYtStateChange(e){
   const btn = document.getElementById('vmodal-playbtn');
-  if(e.data===1){ if(btn) btn.textContent='⏸'; startYtPoll(); }
-  else { if(btn) btn.textContent='▶'; }
+  const wrap = document.querySelector('.vmodal-player-wrap');
+  if(e.data===1){
+    if(btn) btn.textContent='⏸';
+    if(wrap){ wrap.classList.add('playing'); }
+    showControls();
+    startYtPoll();
+  } else {
+    if(btn) btn.textContent='▶';
+    if(wrap){ wrap.classList.remove('playing'); wrap.classList.add('show-controls'); }
+    clearTimeout(ctrlHideTimer);
+  }
   if(e.data===0){ markWatchThreshold(1); }
 }
 function toggleVideoFullscreen(){
@@ -702,6 +731,7 @@ function markWatchThreshold(ratio){
 function closeVideoModal(){
   document.getElementById('video-modal').classList.remove('open');
   clearInterval(ytPollTimer);
+  clearTimeout(ctrlHideTimer);
   if(ytPlayer){ try{ ytPlayer.pauseVideo(); }catch(e){} }
 }
 function videoWatchOk(id){
