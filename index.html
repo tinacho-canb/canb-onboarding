@@ -700,7 +700,8 @@ function tryOpenQuiz(moduleId, quizUrl){
 }
 function trySampleWatched(sampleId, btn){
   if(!videoWatchOk(sampleId)){ toast('영상 시청을 완료하세요.', true); return; }
- 
+  doSampleWatched(sampleId, btn);
+}
 function setBusy(btn,on){ if(!btn) return; btn.disabled=on; if(on){ btn._t=btn.textContent; btn.textContent="처리중…"; } else if(btn._t){ btn.textContent=btn._t; } }
 function num(s){ return (s===0||s)?`${s}점`:""; }
 function esc(s){ return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
