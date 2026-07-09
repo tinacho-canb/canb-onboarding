@@ -167,7 +167,9 @@
   .vmodal-player-wrap{position:relative; width:100%; aspect-ratio:16/9; background:#000}
   .vmodal-player-wrap #yt-player{position:absolute; inset:0; width:100%; height:100%}
   .vmodal-shield{position:absolute; inset:0; cursor:pointer}
-  .vmodal-playbtn{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:64px; height:64px; border-radius:50%; background:rgba(255,255,255,.92); color:var(--navy); font-size:22px; display:flex; align-items:center; justify-content:center}
+ .vmodal-playbtn{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:64px; height:64px; border-radius:50%; background:rgba(255,255,255,.92); color:var(--navy); font-size:22px; display:flex; align-items:center; justify-content:center; z-index:2}
+  .vmodal-fsbtn{position:absolute; bottom:12px; right:12px; width:40px; height:40px; border-radius:10px; background:rgba(0,0,0,.55); color:#fff; font-size:17px; display:flex; align-items:center; justify-content:center; z-index:2}
+  .vmodal-fsbtn:hover{background:rgba(0,0,0,.75)}
   .vmodal-foot{padding:10px 18px; font-size:12.5px; color:var(--muted); background:#fbfcfe}
 
   /* ===== AI 멘토 (로그인 후에만 노출) ===== */
@@ -232,6 +234,8 @@
       <div id="yt-player"></div>
       <div class="vmodal-shield" onclick="toggleVideoPlay()" oncontextmenu="return false"></div>
       <button class="vmodal-playbtn" id="vmodal-playbtn" onclick="toggleVideoPlay()">▶</button>
+      <button class="vmodal-playbtn" id="vmodal-playbtn" onclick="toggleVideoPlay()">▶</button>
+      <button class="vmodal-fsbtn" onclick="toggleVideoFullscreen()" aria-label="전체화면">⤢</button>
     </div>
     <div class="vmodal-foot" id="vmodal-status">영상을 시청해 주세요 (70% 이상 시청 시 자동 잠금 해제)</div>
   </div>
@@ -664,9 +668,18 @@ function toggleVideoPlay(){
 }
 function onYtStateChange(e){
   const btn = document.getElementById('vmodal-playbtn');
-  if(e.data===1){ if(btn) btn.style.display='none'; startYtPoll(); }
-  else { if(btn) btn.style.display='flex'; }
+  if(e.data===1){ if(btn) btn.textContent='⏸'; startYtPoll(); }
+  else { if(btn) btn.textContent='▶'; }
   if(e.data===0){ markWatchThreshold(1); }
+}
+function toggleVideoFullscreen(){
+  const el = document.querySelector('.vmodal-player-wrap');
+  if(!el) return;
+  if(document.fullscreenElement){
+    document.exitFullscreen();
+  } else if(el.requestFullscreen){
+    el.requestFullscreen();
+  }
 }
 function startYtPoll(){
   clearInterval(ytPollTimer);
