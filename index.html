@@ -158,6 +158,17 @@
   .toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px); background:var(--ink); color:#fff; padding:12px 20px; border-radius:10px; font-size:13.5px; box-shadow:0 8px 30px rgba(0,0,0,.25); opacity:0; pointer-events:none; transition:.25s; z-index:60}
   .toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
   .toast.bad{background:var(--red)}
+  .vmodal{position:fixed; inset:0; background:rgba(20,20,25,.72); z-index:80; display:none; align-items:center; justify-content:center; padding:20px}
+  .vmodal.open{display:flex}
+  .vmodal-box{background:#fff; border-radius:16px; width:100%; max-width:720px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,.35)}
+  .vmodal-head{display:flex; align-items:center; justify-content:space-between; padding:14px 18px; background:var(--navy); color:#fff}
+  .vmodal-head span{font-size:14px; font-weight:700}
+  .vmodal-close{background:none; color:#fff; font-size:18px; padding:4px 8px}
+  .vmodal-player-wrap{position:relative; width:100%; aspect-ratio:16/9; background:#000}
+  .vmodal-player-wrap #yt-player{position:absolute; inset:0; width:100%; height:100%}
+  .vmodal-shield{position:absolute; inset:0; cursor:pointer}
+  .vmodal-playbtn{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:64px; height:64px; border-radius:50%; background:rgba(255,255,255,.92); color:var(--navy); font-size:22px; display:flex; align-items:center; justify-content:center}
+  .vmodal-foot{padding:10px 18px; font-size:12.5px; color:var(--muted); background:#fbfcfe}
 
   /* ===== AI 멘토 (로그인 후에만 노출) ===== */
   #mentor-fab{position:fixed; right:22px; bottom:22px; width:58px; height:58px; border-radius:50%; background:linear-gradient(135deg,var(--teal),var(--navy)); color:#fff; font-size:24px; box-shadow:0 8px 24px rgba(20,39,92,.35); z-index:50; display:none; align-items:center; justify-content:center}
@@ -211,6 +222,20 @@
 </div>
 
 <div class="toast" id="toast"></div>
+  <div id="video-modal" class="vmodal">
+  <div class="vmodal-box">
+    <div class="vmodal-head">
+      <span id="vmodal-title"></span>
+      <button class="vmodal-close" onclick="closeVideoModal()" aria-label="닫기">✕</button>
+    </div>
+    <div class="vmodal-player-wrap">
+      <div id="yt-player"></div>
+      <div class="vmodal-shield" onclick="toggleVideoPlay()" oncontextmenu="return false"></div>
+      <button class="vmodal-playbtn" id="vmodal-playbtn" onclick="toggleVideoPlay()">▶</button>
+    </div>
+    <div class="vmodal-foot" id="vmodal-status">영상을 시청해 주세요 (70% 이상 시청 시 자동 잠금 해제)</div>
+  </div>
+</div>
 
 <script>
 /* =========================================================================
@@ -426,7 +451,7 @@ function renderModule(m, p){
 
  const stepVideo = `
     <div class="step"><span class="lab">${p.videoWatched?'✓ ':''}① 영상</span>
-      ${m.videoUrl?`<button class="step-btn b-open" onclick="openLink('${js(m.videoUrl)}');markVideoOpened('${js(m.moduleId)}')">영상 보기</button>`
+      ${m.videoUrl?`<button class="step-btn b-open" onclick="openVideoModal('${js(m.moduleId)}','${js(m.videoUrl)}','module','${js(m.title)}')">영상 보기</button>`
                   :`<button class="step-btn b-lock" disabled>준비중</button>`}
     </div>`;
 
@@ -442,8 +467,8 @@ const isReference = !m.quizUrl && !hasSamples;   // 퀴즈·샘플이 둘 다 �
       <span class="pill p-na">해당 없음</span>
     </div>` : `
     <div class="step"><span class="lab">② 퀴즈</span>
-${m.quizUrl?`<button class="step-btn b-open" onclick="tryOpenQuiz('${js(m.moduleId)}','${js(m.quizUrl)}',${m.videoDuration||0})">${passed?'다시 풀기':'퀴즈 풀기'}</button>`
-                 :`<button class="step-btn b-lock" disabled>준비중</button>`}
+${m.quizUrl?`<button class="step-btn b-open" onclick="tryOpenQuiz('${js(m.moduleId)}','${js(m.quizUrl)}')">${passed?'다시 풀기':'퀴즈 풀기'}</button>`
+           :`<button class="step-btn b-lock" disabled>준비중</button>`}
       ${quizState}
     </div>`;
 
@@ -475,10 +500,10 @@ ${m.quizUrl?`<button class="step-btn b-open" onclick="tryOpenQuiz('${js(m.module
         <div class="sample-row">
           <span class="sl-title">${esc(s.title)}</span>
           <span class="sl-btns">
-            <button class="step-btn b-open" onclick="openLink('${js(s.url)}');markVideoOpened('${js(s.sampleId)}')" ${passed?'':'disabled'}>영상 보기</button>
+            <button class="step-btn b-open" onclick="openVideoModal('${js(s.sampleId)}','${js(s.url)}','sample','${js(s.title)}')" ${passed?'':'disabled'}>영상 보기</button>
             ${ s.watched
                 ? `<button class="step-btn b-done" disabled>시청 완료 ✓</button>`
-                : `<button class="step-btn b-do" onclick="trySampleWatched('${js(s.sampleId)}',${s.duration||0},this)" ${passed?'':'disabled'}>시청 완료</button>` }
+                : `<button class="step-btn b-do" onclick="trySampleWatched('${js(s.sampleId)}',this)" ${passed?'':'disabled'}>시청 완료</button>` }
           </span>
         </div>`).join("")}
     </div>` : '';
@@ -602,28 +627,81 @@ function pushTyping(){
 
 /* ===== 유틸 ===== */
 function openLink(u){ window.open(u,"_blank","noopener"); }
-  function markVideoOpened(moduleId){
-  try{ sessionStorage.setItem('vwatch_'+currentTeacher+'_'+moduleId, String(Date.now())); }catch(e){}
+let ytPlayer=null, ytCurrentKind=null, ytCurrentId=null, ytPollTimer=null;
+function extractYoutubeId(url){
+  const m = String(url||'').match(/(?:youtu\.be\/|v=)([A-Za-z0-9_-]{6,})/);
+  return m ? m[1] : '';
 }
-function videoWatchOk(moduleId, durationSec){
-  if(!durationSec) return true;
-  let start=0;
-  try{ start=Number(sessionStorage.getItem('vwatch_'+currentTeacher+'_'+moduleId))||0; }catch(e){}
-  if(!start) return false;
-  return (Date.now()-start)/1000 >= durationSec*0.7;
-}
-function tryOpenQuiz(moduleId, quizUrl, durationSec){
-  if(!videoWatchOk(moduleId, durationSec)){
-    toast('영상 시청을 완료하세요.', true);
-    return;
+function openVideoModal(id, url, kind, title){
+  const vid = extractYoutubeId(url);
+  if(!vid){ toast('영상 링크를 확인할 수 없습니다.', true); return; }
+  ytCurrentId = id; ytCurrentKind = kind;
+  document.getElementById('vmodal-title').textContent = title||'영상 시청';
+  document.getElementById('vmodal-status').textContent = '영상을 시청해 주세요 (70% 이상 시청 시 자동 잠금 해제)';
+  document.getElementById('video-modal').classList.add('open');
+  if(window.YT && window.YT.Player){
+    createYtPlayer(vid);
+  } else {
+    window.onYouTubeIframeAPIReady = function(){ createYtPlayer(vid); };
+    if(!document.getElementById('yt-iframe-api')){
+      const s=document.createElement('script'); s.id='yt-iframe-api'; s.src='https://www.youtube.com/iframe_api';
+      document.head.appendChild(s);
+    }
   }
+}
+function createYtPlayer(vid){
+  if(ytPlayer){ try{ ytPlayer.loadVideoById(vid); }catch(e){} return; }
+  ytPlayer = new YT.Player('yt-player', {
+    videoId: vid,
+    playerVars:{ controls:0, disablekb:1, modestbranding:1, rel:0, playsinline:1 },
+    events:{ onStateChange: onYtStateChange }
+  });
+}
+function toggleVideoPlay(){
+  if(!ytPlayer) return;
+  const state = ytPlayer.getPlayerState();
+  if(state===1) ytPlayer.pauseVideo(); else ytPlayer.playVideo();
+}
+function onYtStateChange(e){
+  const btn = document.getElementById('vmodal-playbtn');
+  if(e.data===1){ if(btn) btn.style.display='none'; startYtPoll(); }
+  else { if(btn) btn.style.display='flex'; }
+  if(e.data===0){ markWatchThreshold(1); }
+}
+function startYtPoll(){
+  clearInterval(ytPollTimer);
+  ytPollTimer = setInterval(()=>{
+    if(!ytPlayer) return;
+    try{
+      const cur = ytPlayer.getCurrentTime();
+      const dur = ytPlayer.getDuration();
+      if(dur>0) markWatchThreshold(cur/dur);
+    }catch(e){}
+  }, 2000);
+}
+function markWatchThreshold(ratio){
+  if(ratio>=0.7 && ytCurrentId){
+    try{ sessionStorage.setItem('vok_'+currentTeacher+'_'+ytCurrentId, '1'); }catch(e){}
+    const st=document.getElementById('vmodal-status');
+    if(st) st.textContent='시청 완료 조건을 채웠습니다. 창을 닫고 계속 진행하세요.';
+  }
+}
+function closeVideoModal(){
+  document.getElementById('video-modal').classList.remove('open');
+  clearInterval(ytPollTimer);
+  if(ytPlayer){ try{ ytPlayer.pauseVideo(); }catch(e){} }
+}
+function videoWatchOk(id){
+  try{ return sessionStorage.getItem('vok_'+currentTeacher+'_'+id)==='1'; }catch(e){ return false; }
+}
+function tryOpenQuiz(moduleId, quizUrl){
+  if(!videoWatchOk(moduleId)){ toast('영상 시청을 완료하세요.', true); return; }
   openLink(quizUrl);
 }
-function trySampleWatched(sampleId, durationSec, btn){
-  if(!videoWatchOk(sampleId, durationSec)){
-    toast('영상 시청을 완료하세요.', true);
-    return;
-  }
+function trySampleWatched(sampleId, btn){
+  if(!videoWatchOk(sampleId)){ toast('영상 시청을 완료하세요.', true); return; }
+  doSampleWatched(sampleId, btn);
+}
   doSampleWatched(sampleId, btn);
 }
 function setBusy(btn,on){ if(!btn) return; btn.disabled=on; if(on){ btn._t=btn.textContent; btn.textContent="처리중…"; } else if(btn._t){ btn.textContent=btn._t; } }
