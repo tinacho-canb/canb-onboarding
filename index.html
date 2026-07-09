@@ -568,8 +568,17 @@ function renderBooking(d){
     </div>`;
   }).join("");
 
+  const moduleOptions = (d.completedModules||[]).map(m=>`<option value="${js(m.moduleId)}">${esc(m.title)}</option>`).join('');
+
   return `<div class="book-card">
-    <div style="font-size:13px;color:var(--muted);margin-bottom:4px">필수 모듈을 이수해 예약이 열렸습니다. 원하는 시간을 선택하세요.</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:12px">필수 모듈을 이수해 예약이 열렸습니다. 원하는 시간을 선택하세요.</div>
+    <div class="field" style="max-width:320px;margin-bottom:14px">
+      <label style="display:block;font-size:12.5px;font-weight:600;color:var(--ink);margin-bottom:6px">시연할 모듈</label>
+      <select id="book-module-select" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:13.5px;font-family:inherit">
+        <option value="">선택하세요</option>
+        ${moduleOptions}
+      </select>
+    </div>
     ${groupHtml || '<div style="color:var(--muted);padding:10px 0">현재 등록된 슬롯이 없습니다.</div>'}
   </div>`;
 }
@@ -595,9 +604,12 @@ async function doSampleWatched(sampleId, btn){
   }catch(e){ toast("처리 중 오류가 발생했습니다.",true); setBusy(btn,false); console.error(e); }
 }
 async function doBook(slotId, btn){
+  const sel = document.getElementById('book-module-select');
+  const moduleId = sel ? sel.value : '';
+  if(!moduleId){ toast('시연할 모듈을 선택해 주세요.', true); return; }
   setBusy(btn,true);
   try{
-    const r=await api({ action:"bookSlot", teacher:currentTeacher, slot:slotId });
+    const r=await api({ action:"bookSlot", teacher:currentTeacher, slot:slotId, module:moduleId });
     if(r && r.ok===false){ toast(r.message||"이미 마감된 슬롯입니다.",true); await loadDashboard(); return; }
     toast("예약이 확정되었습니다."); await loadDashboard();
   }catch(e){ toast("예약 중 오류가 발생했습니다.",true); setBusy(btn,false); console.error(e); }
