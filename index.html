@@ -262,6 +262,7 @@ const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbytP0kq6WFnXyqL14wDQ
 let currentTeacher = null;
 let currentName    = null;
 let DATA = null;
+const NO_SAMPLE_POND = ['MOD-004','MOD-006','MOD-007','MOD-009','MOD-026','MOD-034','MOD-036','MOD-044'];  
 
 /* 세션 유지: sessionStorage 사용, 막힌 환경(미리보기 등)에선 메모리로 폴백 */
 const SK = "canb_session";
@@ -448,20 +449,37 @@ function renderCat(c, ci, progMap){
 function renderModule(m, p){
   const passed=!!p.passed, pond=!!p.pondDone, done=!!p.moduleComplete;
 
+  const isVideoOnly = m.category === 'SUM' || m.category === '중등';
+  if (isVideoOnly) {
+    return `
+    <div class="mod${done?' done':''}">
+      <div class="mod-top">
+        <div>
+          <div class="mod-id">${esc(m.moduleId)}</div>
+          <div class="mod-title">${esc(m.title)}</div>
+          ${m.target?`<span class="mod-target">${esc(m.target)}</span>`:''}
+        </div>
+      </div>
+      ${m.videoUrl?`<button class="step-btn b-open" style="width:100%" onclick="openVideoModal('${js(m.moduleId)}','${js(m.videoUrl)}','module','${js(m.title)}')">영상 보기</button>`
+                  :`<button class="step-btn b-lock" style="width:100%" disabled>준비중</button>`}
+    </div>`;
+  }
+
   // 샘플수업: 백엔드가 내려준 모듈별 샘플 목록 + 시청여부
   const samples = (DATA && DATA.samplesByModule && DATA.samplesByModule[m.moduleId]) || [];
   const hasSamples = samples.length>0;
   const watchedN = samples.filter(s=>s.watched).length;
   const sampleAllWatched = hasSamples && watchedN===samples.length;
-  const sampleSatisfied = !hasSamples || sampleAllWatched;   // 샘플 0개 모듈은 자동 충족(준비 중)
+  const sampleSatisfied = !hasSamples || sampleAllWatched;
 
- const stepVideo = `
+  const stepVideo = `
     <div class="step"><span class="lab">${p.videoWatched?'✓ ':''}① 영상</span>
       ${m.videoUrl?`<button class="step-btn b-open" onclick="openVideoModal('${js(m.moduleId)}','${js(m.videoUrl)}','module','${js(m.title)}')">영상 보기</button>`
                   :`<button class="step-btn b-lock" disabled>준비중</button>`}
     </div>`;
 
-const isReference = !m.quizUrl && !hasSamples;   // 퀴즈·샘플이 둘 다 없는 순수 참고영상 모듈(SUM 등)
+  const isReference = !m.quizUrl && !hasSamples;
+  const noSamplePond = isReference || NO_SAMPLE_POND.includes(m.moduleId);
 
   let quizState;
   if(passed)            quizState=`<span class="pill p-pass">Pass ${num(p.score)}</span>`;
@@ -478,7 +496,7 @@ ${m.quizUrl?`<button class="step-btn b-open" onclick="tryOpenQuiz('${js(m.module
       ${quizState}
     </div>`;
 
-  const stepSample = isReference ? `
+  const stepSample = noSamplePond ? `
     <div class="step"><span class="lab">③ 샘플수업</span>
       <span class="pill p-na">해당 없음</span>
     </div>` : `
@@ -489,7 +507,7 @@ ${m.quizUrl?`<button class="step-btn b-open" onclick="tryOpenQuiz('${js(m.module
         : `<span class="pill p-wait">${watchedN}/${samples.length} 시청</span>` }
     </div>`;
 
-  const stepPond = isReference ? `
+  const stepPond = noSamplePond ? `
     <div class="step"><span class="lab">④ POND</span>
       <span class="pill p-na">해당 없음</span>
     </div>` : `
