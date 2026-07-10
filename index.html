@@ -530,19 +530,40 @@ ${m.quizUrl?`<button class="step-btn b-open" onclick="tryOpenQuiz('${js(m.module
 }
 
 function renderBooking(d){
+  const overview = d.bookedModulesOverview || [];
+  const overviewHtml = overview.length ? `
+    <div style="background:#fbfcfe;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:14px">
+      <div style="font-size:12.5px;font-weight:700;color:var(--navy);margin-bottom:6px">이미 예약된 레벨·과목 (중복 시연 방지용)</div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        ${overview.map(o=>`
+          <div style="font-size:12.5px;color:var(--ink);display:flex;gap:8px;flex-wrap:wrap">
+            <span style="color:var(--muted)">${esc(o.when)}</span>
+            <span style="font-weight:600">${esc(o.category)}</span>
+            <span>${esc(o.title)}</span>
+          </div>`).join("")}
+      </div>
+    </div>` : '';
+
   if(!d.bookingEligible){
-    return `<div class="book-card"><div class="book-locked">
-      <div class="ic">🔒</div>
-      <div><b style="color:var(--ink)">아직 예약할 수 없습니다.</b><br>모듈을 1개 이상 완료하면 예약 슬롯이 열립니다.</div>
-    </div></div>`;
+    return `<div class="book-card">
+      ${overviewHtml}
+      <div class="book-locked">
+        <div class="ic">🔒</div>
+        <div><b style="color:var(--ink)">아직 예약할 수 없습니다.</b><br>모듈을 1개 이상 완료하면 예약 슬롯이 열립니다.</div>
+      </div>
+    </div>`;
   }
   if(d.myBooking){
     const b=d.myBooking;
-    return `<div class="book-card"><div class="mybooking">
-      <span class="ic">📅</span>
-      <div>예약이 확정되었습니다 — <b>${esc(b.when)}</b> · ${esc(b.place)}
-      <div style="font-size:12px;color:var(--muted);margin-top:3px">변경이 필요하면 관리자에게 문의하세요.</div></div>
-    </div></div>`;
+    return `<div class="book-card">
+      ${overviewHtml}
+      <div class="mybooking">
+        <span class="ic">📅</span>
+        <div>예약이 확정되었습니다 — <b>${esc(b.when)}</b> · ${esc(b.place)}
+        <div style="font-size:12.5px;color:var(--navy);font-weight:600;margin-top:4px">${esc(b.category||'')} · ${esc(b.moduleTitle||'')}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px">변경이 필요하면 관리자에게 문의하세요.</div></div>
+      </div>
+    </div>`;
   }
   const slots=d.availableSlots||[]; const groups={};
   slots.forEach(s=>{ (groups[s.place]=groups[s.place]||[]).push(s); });
@@ -567,6 +588,22 @@ function renderBooking(d){
         <div class="slots" id="full-${gi}" style="display:none; margin-top:8px">${full.map(slotBtn).join("")}</div>`:``}
     </div>`;
   }).join("");
+
+  const moduleOptions = (d.completedModules||[]).map(m=>`<option value="${js(m.moduleId)}">${esc(m.title)}</option>`).join('');
+
+  return `<div class="book-card">
+    ${overviewHtml}
+    <div style="font-size:13px;color:var(--muted);margin-bottom:12px">필수 모듈을 이수해 예약이 열렸습니다. 원하는 시간을 선택하세요.</div>
+    <div class="field" style="max-width:320px;margin-bottom:14px">
+      <label style="display:block;font-size:12.5px;font-weight:600;color:var(--ink);margin-bottom:6px">시연할 모듈</label>
+      <select id="book-module-select" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:13.5px;font-family:inherit">
+        <option value="">선택하세요</option>
+        ${moduleOptions}
+      </select>
+    </div>
+    ${groupHtml || '<div style="color:var(--muted);padding:10px 0">현재 등록된 슬롯이 없습니다.</div>'}
+  </div>`;
+}
 
   const moduleOptions = (d.completedModules||[]).map(m=>`<option value="${js(m.moduleId)}">${esc(m.title)}</option>`).join('');
 
