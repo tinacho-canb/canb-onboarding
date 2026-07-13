@@ -94,7 +94,15 @@
   .cat.open .chev{transform:rotate(90deg)}
   .cat-body{display:none; padding:4px 14px 16px; border-top:1px solid var(--line)}
   .cat.open .cat-body{display:grid; gap:10px; grid-template-columns:repeat(auto-fill,minmax(330px,1fr))}
-
+  .cat.cat-sum.open .cat-body{grid-template-columns:repeat(5,1fr); gap:8px}
+  @media (max-width:900px){ .cat.cat-sum.open .cat-body{grid-template-columns:repeat(3,1fr)} }
+  @media (max-width:560px){ .cat.cat-sum.open .cat-body{grid-template-columns:1fr} }
+  .mod-compact{padding:10px 11px}
+  .mod-compact .mod-title{font-size:12.5px}
+  .mod-compact .mod-id{font-size:10px}
+  .mod-compact .mod-target{font-size:10px; padding:1px 6px; margin-top:3px}
+  .mod-compact .step-btn{font-size:10.5px; padding:6px 4px}
+  
   /* ===== 모듈 카드 ===== */
   .mod{border:1px solid var(--line); border-radius:12px; padding:13px 14px; background:#fff; position:relative}
   .mod.done{border-color:var(--lime); background:linear-gradient(0deg,var(--lime-bg),#fff 60%)}
@@ -436,8 +444,9 @@ function render(d){
 function renderCat(c, ci, progMap){
   const doneN=c.items.filter(m=>progMap[m.moduleId]?.moduleComplete).length;
   const pct=Math.round(doneN/c.items.length*100);
+  const catClass = c.name === 'SUM' ? ' cat-sum' : '';
   return `
-  <div class="cat${ci===0?' open':''}">
+  <div class="cat${ci===0?' open':''}${catClass}">
     <div class="cat-head" onclick="this.parentNode.classList.toggle('open')">
       <div class="cat-title">${esc(c.name)} <span class="cat-count">${doneN}/${c.items.length} 완료</span></div>
       <div class="cat-meta"><div class="mini-bar"><i style="width:${pct}%"></i></div><span class="chev">▸</span></div>
@@ -445,14 +454,13 @@ function renderCat(c, ci, progMap){
     <div class="cat-body">${c.items.map(m=>renderModule(m, progMap[m.moduleId]||{})).join("")}</div>
   </div>`;
 }
-
 function renderModule(m, p){
   const passed=!!p.passed, pond=!!p.pondDone, done=!!p.moduleComplete;
 
   const isVideoOnly = m.category === 'SUM' || m.category === '중등';
   if (isVideoOnly) {
     return `
-    <div class="mod${done?' done':''}">
+    <div class="mod mod-compact${done?' done':''}">
       <div class="mod-top">
         <div>
           <div class="mod-id">${esc(m.moduleId)}</div>
