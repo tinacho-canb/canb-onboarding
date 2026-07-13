@@ -582,13 +582,16 @@ function renderBooking(d){
   }
   if(d.myBooking){
     const b=d.myBooking;
+    const pending = !b.result || String(b.result).indexOf('예약완료')===0 || String(b.result).indexOf('대기')>=0;
     return `<div class="book-card">
       ${overviewHtml}
       <div class="mybooking">
         <span class="ic">📅</span>
         <div>예약이 확정되었습니다 — <b>${esc(b.when)}</b> · ${esc(b.place)}
         <div style="font-size:12.5px;color:var(--navy);font-weight:600;margin-top:4px">${esc(b.category||'')} · ${esc(b.moduleTitle||'')}${b.period?` · ${esc(b.period)}`:''}</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:3px">변경이 필요하면 관리자에게 문의하세요.</div></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px">변경이 필요하면 관리자에게 문의하세요.</div>
+        ${pending?`<button class="step-btn" style="width:auto;margin-top:10px;padding:7px 14px;background:var(--red-bg);color:var(--red)" onclick="doCancelBooking('${js(b.reservationId)}',this)">예약 취소</button>`:''}
+        </div>
       </div>
     </div>`;
   }
@@ -671,6 +674,15 @@ async function doBook(slotId, btn){
     toast("예약이 확정되었습니다."); await loadDashboard();
   }catch(e){ toast("예약 중 오류가 발생했습니다.",true); setBusy(btn,false); console.error(e); }
 }
+async function doCancelBooking(reservationId, btn){
+  if(!confirm('예약을 취소하시겠습니까? 취소 후 다시 예약하실 수 있습니다.')) return;
+  setBusy(btn,true);
+  try{
+    const r=await api({ action:"cancelBooking", teacher:currentTeacher, reservation:reservationId });
+    if(r && r.error){ toast(r.error, true); setBusy(btn,false); return; }
+    toast('예약이 취소되었습니다.'); await loadDashboard();
+  }catch(e){ toast('취소 중 오류가 발생했습니다.', true); setBusy(btn,false); console.error(e); }
+}  
 /* ===== AI 멘토 ===== */
 function toggleMentor(){
   const el=document.getElementById("mentor"); el.classList.toggle("open");
