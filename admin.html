@@ -375,6 +375,7 @@ function renderCard(x){
       <div>
         <div class="tname">${esc(x.teacherName)} <span style="font-size:12px;color:#9aa3b8;font-weight:500">(${esc(x.teacherId)})</span></div>
         <div class="meta">${esc(x.when)} · ${esc(x.place)} · 예약ID ${rid}</div>
+        ${(x.category || x.moduleTitle || x.period) ? `<div class="meta" style="color:var(--navy);font-weight:600;margin-top:2px">${esc(x.category||'')} ${esc(x.moduleTitle||'')}${x.period?` · ${esc(x.period)}`:''}</div>` : ''}
       </div>
       <span class="badge ${pending?'b-pending':'b-done'}">${pending?'미평가':esc(x.result)}</span>
     </div>
