@@ -566,6 +566,7 @@ function renderBooking(d){
             <span style="color:var(--muted)">${esc(o.when)}</span>
             <span style="font-weight:600">${esc(o.category)}</span>
             <span>${esc(o.title)}</span>
+            ${o.period?`<span style="color:var(--teal-d)">· ${esc(o.period)}</span>`:''}
           </div>`).join("")}
       </div>
     </div>` : '';
@@ -586,7 +587,7 @@ function renderBooking(d){
       <div class="mybooking">
         <span class="ic">📅</span>
         <div>예약이 확정되었습니다 — <b>${esc(b.when)}</b> · ${esc(b.place)}
-        <div style="font-size:12.5px;color:var(--navy);font-weight:600;margin-top:4px">${esc(b.category||'')} · ${esc(b.moduleTitle||'')}</div>
+        <div style="font-size:12.5px;color:var(--navy);font-weight:600;margin-top:4px">${esc(b.category||'')} · ${esc(b.moduleTitle||'')}${b.period?` · ${esc(b.period)}`:''}</div>
         <div style="font-size:12px;color:var(--muted);margin-top:3px">변경이 필요하면 관리자에게 문의하세요.</div></div>
       </div>
     </div>`;
@@ -627,6 +628,10 @@ function renderBooking(d){
         ${moduleOptions}
       </select>
     </div>
+    <div class="field" style="max-width:320px;margin-bottom:14px">
+      <label style="display:block;font-size:12.5px;font-weight:600;color:var(--ink);margin-bottom:6px">시연할 차시</label>
+      <input id="book-period-input" type="text" placeholder="예: 1차시, Reading 2차시" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:13.5px;font-family:inherit" />
+    </div>
     ${groupHtml || '<div style="color:var(--muted);padding:10px 0">현재 등록된 슬롯이 없습니다.</div>'}
   </div>`;
 }
@@ -655,15 +660,17 @@ async function doSampleWatched(sampleId, btn){
 async function doBook(slotId, btn){
   const sel = document.getElementById('book-module-select');
   const moduleId = sel ? sel.value : '';
+  const periodInput = document.getElementById('book-period-input');
+  const period = periodInput ? periodInput.value.trim() : '';
   if(!moduleId){ toast('시연할 모듈을 선택해 주세요.', true); return; }
+  if(!period){ toast('시연할 차시를 입력해 주세요.', true); return; }
   setBusy(btn,true);
   try{
-    const r=await api({ action:"bookSlot", teacher:currentTeacher, slot:slotId, module:moduleId });
+    const r=await api({ action:"bookSlot", teacher:currentTeacher, slot:slotId, module:moduleId, period:period });
     if(r && r.ok===false){ toast(r.message||"이미 마감된 슬롯입니다.",true); await loadDashboard(); return; }
     toast("예약이 확정되었습니다."); await loadDashboard();
   }catch(e){ toast("예약 중 오류가 발생했습니다.",true); setBusy(btn,false); console.error(e); }
 }
-
 /* ===== AI 멘토 ===== */
 function toggleMentor(){
   const el=document.getElementById("mentor"); el.classList.toggle("open");
