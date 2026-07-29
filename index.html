@@ -431,16 +431,41 @@ function render(d){
     ${cats.map((c,ci)=>renderCat(c,ci,progMap)).join("")}
   </section>
 
-  <section class="block">
+<section class="block">
     <div class="block-head"><h2><span class="accent"></span>모의강의 예약</h2>
       <span class="sub">선착순 · 예약 즉시 관리자에게 알림이 전송됩니다</span></div>
     ${renderBooking(d)}
   </section>
+  ${renderMyFeedback(d)}
   </div>`;
 
   document.getElementById("app").innerHTML = html;
 }
-
+function renderMyFeedback(d){
+  const list = d.myFeedback || [];
+  if(!list.length) return "";
+  return `
+  <section class="block">
+    <div class="block-head"><h2><span class="accent"></span>모의강의 피드백</h2>
+      <span class="sub">관리자가 남긴 평가 피드백입니다</span></div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      ${list.map(f=>`
+      <div class="book-card">
+        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+          <div><b>${esc(f.moduleTitle||'')}</b>${f.period?` · ${esc(f.period)}`:''} <span class="small" style="color:var(--muted)">${esc(f.when||'')}</span></div>
+          <span class="pill ${f.result==='재평가'?'p-retry':'p-pass'}">${esc(f.result)}</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;font-size:13.5px">
+          <div><b>주요 강점</b> — ${esc(f.strengths||'-')}</div>
+          <div><b>약점 및 개선 필요</b> — ${esc(f.weaknesses||'-')}</div>
+          <div><b>개선 방안</b> — ${esc(f.actionPlan||'-')}</div>
+          <div><b>주요 특징</b> — ${esc(f.keyFeatures||'-')}</div>
+        </div>
+        <div class="small" style="margin-top:8px;color:var(--muted)">평가자: ${esc(f.evaluatorName||'')}</div>
+      </div>`).join("")}
+    </div>
+  </section>`;
+}
 function renderCat(c, ci, progMap){
   const doneN=c.items.filter(m=>progMap[m.moduleId]?.moduleComplete).length;
   const pct=Math.round(doneN/c.items.length*100);
