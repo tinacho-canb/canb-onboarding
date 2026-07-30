@@ -139,6 +139,18 @@
 
   /* ===== 예약 ===== */
   .book-card{background:var(--card); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow); padding:20px 22px}
+  .fb-card{border-left:4px solid var(--teal)}
+  .fb-card.retry{border-left-color:var(--red)}
+  .fb-head{display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:14px}
+  .fb-head .fb-title{font-size:14.5px; font-weight:800; color:var(--ink)}
+  .fb-head .fb-sub{font-size:12px; color:var(--muted); margin-top:2px}
+  .fb-list{display:flex; flex-direction:column; gap:12px}
+  .fb-item .fb-lab{font-size:10.5px; font-weight:700; color:var(--teal-d); text-transform:uppercase; letter-spacing:.04em; margin-bottom:3px}
+  .fb-card.retry .fb-item .fb-lab{color:var(--red)}
+  .fb-item .fb-val{font-size:13.5px; color:var(--ink); line-height:1.6; word-break:break-word; white-space:pre-wrap}
+  .fb-foot{display:flex; align-items:center; gap:8px; margin-top:16px; padding-top:12px; border-top:1px dashed var(--line)}
+  .fb-avatar{width:24px; height:24px; border-radius:50%; background:var(--navy); color:#fff; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; flex:none}
+  .book-locked{display:flex; gap:14px; align-items:center; color:var(--muted)}
   .book-locked{display:flex; gap:14px; align-items:center; color:var(--muted)}
   .book-locked .ic{width:42px; height:42px; border-radius:11px; background:var(--lock-bg); display:flex; align-items:center; justify-content:center; font-size:20px; flex:0 0 auto}
   .mybooking{display:flex; flex-wrap:wrap; gap:14px; align-items:center; background:var(--lime-bg); border:1px solid #cfe8bd; border-radius:12px; padding:16px 18px}
@@ -441,6 +453,16 @@ function render(d){
 
   document.getElementById("app").innerHTML = html;
 }
+// 강사 페이지에 표시할 평가자명 매핑 (실제 시트 데이터는 그대로, 화면 표시만 치환)
+const EVALUATOR_DISPLAY_NAME = {
+  '조윤희': 'Tina',
+  '장화영': 'Amy'
+};
+function evaluatorDisplayName(name){
+  const n = String(name||'').trim();
+  return EVALUATOR_DISPLAY_NAME[n] || n;
+}
+
 function renderMyFeedback(d){
   const list = d.myFeedback || [];
   if(!list.length) return "";
@@ -448,21 +470,32 @@ function renderMyFeedback(d){
   <section class="block">
     <div class="block-head"><h2><span class="accent"></span>모의강의 피드백</h2>
       <span class="sub">관리자가 남긴 평가 피드백입니다</span></div>
-    <div style="display:flex;flex-direction:column;gap:12px">
-      ${list.map(f=>`
-      <div class="book-card">
-        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
-          <div><b>${esc(f.moduleTitle||'')}</b>${f.period?` · ${esc(f.period)}`:''} <span class="small" style="color:var(--muted)">${esc(f.when||'')}</span></div>
-          <span class="pill ${f.result==='재평가'?'p-retry':'p-pass'}">${esc(f.result)}</span>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      ${list.map(f=>{
+        const isRetry = f.result === '재평가';
+        const displayName = evaluatorDisplayName(f.evaluatorName);
+        const initial = (displayName||'?').trim().charAt(0);
+        return `
+      <div class="book-card fb-card${isRetry?' retry':''}">
+        <div class="fb-head">
+          <div>
+            <div class="fb-title">${esc(f.moduleTitle||'')}${f.period?` · ${esc(f.period)}`:''}</div>
+            <div class="fb-sub">${esc(f.when||'')}</div>
+          </div>
+          <span class="pill ${isRetry?'p-retry':'p-pass'}">${esc(f.result)}</span>
         </div>
-        <div style="display:flex;flex-direction:column;gap:6px;font-size:13.5px">
-          <div><b>주요 강점</b> — ${esc(f.strengths||'-')}</div>
-          <div><b>약점 및 개선 필요</b> — ${esc(f.weaknesses||'-')}</div>
-          <div><b>개선 방안</b> — ${esc(f.actionPlan||'-')}</div>
-          <div><b>주요 특징</b> — ${esc(f.keyFeatures||'-')}</div>
+        <div class="fb-list">
+          <div class="fb-item"><div class="fb-lab">Strengths</div><div class="fb-val">${esc(f.strengths||'-')}</div></div>
+          <div class="fb-item"><div class="fb-lab">Weaknesses</div><div class="fb-val">${esc(f.weaknesses||'-')}</div></div>
+          <div class="fb-item"><div class="fb-lab">Action Plan</div><div class="fb-val">${esc(f.actionPlan||'-')}</div></div>
+          <div class="fb-item"><div class="fb-lab">Key Features</div><div class="fb-val">${esc(f.keyFeatures||'-')}</div></div>
         </div>
-        <div class="small" style="margin-top:8px;color:var(--muted)">평가자: ${esc(f.evaluatorName||'')}</div>
-      </div>`).join("")}
+        <div class="fb-foot">
+          <span class="fb-avatar">${esc(initial)}</span>
+          <span class="small">${esc(displayName)} 평가</span>
+        </div>
+      </div>`;
+      }).join("")}
     </div>
   </section>`;
 }
