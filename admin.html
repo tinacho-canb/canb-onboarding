@@ -425,11 +425,15 @@ function renderCard(x){
         <label>주요 특징<span class="en">Key Features</span></label>
         <input id="kf-${rid}" value="${esc(mine?mine.keyFeatures:'')}" placeholder="예) 에너지 중심 수업 / engagement 우수">
       </div>
-      <div class="frow">
+<div class="frow">
         <label>강사 페이지 공개</label>
-        <label style="display:flex;align-items:center;gap:8px;font-weight:500;padding-top:0">
-          <input type="checkbox" id="pub-${rid}" ${mine&&mine.isPublic?'checked':''} style="width:auto"> 체크 시 강사 본인이 이 피드백을 볼 수 있습니다
-        </label>
+        ${mine ? `
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="chip ${mine.isPublic?'chip-y':'chip-n'}">${mine.isPublic?'공개 중':'비공개'}</span>
+          <button type="button" class="save" style="background:${mine.isPublic?'var(--red)':'var(--teal)'};padding:7px 14px;font-size:12.5px"
+            onclick="togglePublic('${rid}', ${mine.isPublic?'false':'true'}, this)">${mine.isPublic?'비공개로 전환':'공개로 전환'}</button>
+        </div>` : `
+        <span class="small" style="padding-top:9px;display:block">먼저 저장한 뒤 공개 여부를 전환할 수 있습니다.</span>`}
       </div>
       <div class="erow-save">
         <span class="small">${mine? '내 피드백('+esc(AUTH.name||AUTH.email)+') 수정 중' : '내 피드백 신규 작성 ('+esc(AUTH.name||AUTH.email)+')'}</span>
@@ -445,14 +449,12 @@ async function saveResult(rid, btn){
   const weaknesses = document.getElementById("wk-"+rid).value;
   const actionPlan = document.getElementById("ap-"+rid).value;
   const keyFeatures = document.getElementById("kf-"+rid).value;
-  const isPublic = document.getElementById("pub-"+rid).checked;
   if(!result){ toast("평가 결과를 선택하세요.", true); return; }
 
   btn.disabled=true; const t0=btn.textContent; btn.textContent="저장 중…";
   try{
     const r = await api({ action:"saveMockFeedback", email:AUTH.email, password:AUTH.password,
-                          reservation:rid, result, strengths, weaknesses, actionPlan, keyFeatures,
-                          isPublic: isPublic ? "true" : "false" });
+                          reservation:rid, result, strengths, weaknesses, actionPlan, keyFeatures });
     if(!r || !r.ok){
       if(r && /권한/.test(r.message||"")){ toast("권한이 없습니다. 다시 로그인하세요.", true); setTimeout(logout, 1200); return; }
       toast((r&&r.message)||"저장 실패", true); btn.disabled=false; btn.textContent=t0; return;
@@ -460,6 +462,17 @@ async function saveResult(rid, btn){
     toast(result==="재평가" ? "저장 완료 — 재평가 안내 메일을 발송했습니다." : "저장 완료");
     await loadReservations();
   }catch(e){ toast("저장 중 오류가 발생했습니다.", true); btn.disabled=false; btn.textContent=t0; console.error(e); }
+}
+
+async function togglePublic(rid, nextVal, btn){
+  btn.disabled = true;
+  try{
+    const r = await api({ action:"toggleFeedbackPublic", email:AUTH.email, password:AUTH.password,
+                          reservation:rid, isPublic: nextVal });
+    if(!r || !r.ok){ toast((r&&r.message)||"전환 실패", true); btn.disabled=false; return; }
+    toast(nextVal==="true" ? "강사 페이지에 공개되었습니다." : "비공개로 전환했습니다.");
+    await loadReservations();
+  }catch(e){ toast("처리 중 오류가 발생했습니다.", true); btn.disabled=false; console.error(e); }
 }
 
 /* 유틸 */
