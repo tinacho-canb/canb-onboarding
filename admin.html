@@ -431,7 +431,7 @@ function renderCard(x){
         <div style="display:flex;align-items:center;gap:10px">
           <span class="chip ${mine.isPublic?'chip-y':'chip-n'}">${mine.isPublic?'공개 중':'비공개'}</span>
           <button type="button" class="save" style="background:${mine.isPublic?'var(--red)':'var(--teal)'};padding:7px 14px;font-size:12.5px"
-            onclick="togglePublic('${rid}', ${mine.isPublic?'false':'true'}, this)">${mine.isPublic?'비공개로 전환':'공개로 전환'}</button>
+            onclick="togglePublic('${rid}', '${mine.isPublic?'false':'true'}', this)">${mine.isPublic?'비공개로 전환':'공개로 전환'}</button>
         </div>` : `
         <span class="small" style="padding-top:9px;display:block">먼저 저장한 뒤 공개 여부를 전환할 수 있습니다.</span>`}
       </div>
