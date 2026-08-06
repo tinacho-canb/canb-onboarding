@@ -573,14 +573,14 @@ ${m.quizUrl?`<button class="step-btn b-open" onclick="tryOpenQuiz('${js(m.module
         : `<span class="pill p-wait">${watchedN}/${samples.length} 시청</span>` }
     </div>`;
 
-  const stepPond = noSamplePond ? `
+const stepPond = noSamplePond ? `
     <div class="step"><span class="lab">④ POND</span>
       <span class="pill p-na">해당 없음</span>
     </div>` : `
     <div class="step"><span class="lab">④ POND</span>
       ${ pond?`<button class="step-btn b-done" disabled>완료 ✓</button>`
-        : (passed && sampleSatisfied)?`<button class="step-btn b-do" onclick="doAction('pondComplete','${js(m.moduleId)}',this)">완료 표시</button>`
-                :`<button class="step-btn b-lock" disabled>🔒 샘플 후</button>` }
+        : passed?`<button class="step-btn b-do" onclick="doAction('pondComplete','${js(m.moduleId)}',this)">완료 표시</button>`
+                :`<button class="step-btn b-lock" disabled>🔒 퀴즈 Pass 후</button>` }
     </div>`;
 
   const sampleListHtml = hasSamples ? `
@@ -598,7 +598,7 @@ ${m.quizUrl?`<button class="step-btn b-open" onclick="tryOpenQuiz('${js(m.module
         </div>`).join("")}
     </div>` : '';
 
-  return `
+return `
   <div class="mod${done?' done':''}">
     <div class="mod-top">
       <div>
@@ -610,6 +610,7 @@ ${m.quizUrl?`<button class="step-btn b-open" onclick="tryOpenQuiz('${js(m.module
     </div>
     <div class="steps">${stepVideo}${stepQuiz}${stepSample}${stepPond}</div>
     ${sampleListHtml}
+    ${done?`<button class="step-btn b-done" style="width:100%;margin-top:10px" onclick="scrollToBooking()">✓ 완료 — 모의강의 예약하러 가기</button>`:''}
   </div>`;
 }
 
@@ -771,6 +772,10 @@ function pushTyping(){
 
 /* ===== 유틸 ===== */
 function openLink(u){ window.open(u,"_blank","noopener"); }
+function scrollToBooking(){
+  const el = document.querySelector('.book-card');
+  if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+}
 let ytPlayer=null, ytCurrentKind=null, ytCurrentId=null, ytPollTimer=null, ctrlHideTimer=null;
 function extractYoutubeId(url){
   const m = String(url||'').match(/(?:youtu\.be\/|v=)([A-Za-z0-9_-]{6,})/);
