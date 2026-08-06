@@ -433,7 +433,7 @@ function render(d){
     </div>
     <div class="progress-line">
       <div class="bar"><i style="width:${pct}%"></i></div>
-      <div class="lab">전체 진행률 ${pct}% — 모듈 1개만 완료해도 모의강의 예약이 열립니다</div>
+      <div class="lab">전체 진행률 ${pct}% — POND 연습을 완료하면 모의강의 예약이 열립니다</div>
     </div>
   </header>
 
@@ -610,7 +610,7 @@ return `
     </div>
     <div class="steps">${stepVideo}${stepQuiz}${stepSample}${stepPond}</div>
     ${sampleListHtml}
-    ${done?`<button class="step-btn b-done" style="width:100%;margin-top:10px" onclick="scrollToBooking()">✓ 완료 — 모의강의 예약하러 가기</button>`:''}
+    ${pond?`<button class="step-btn b-done" style="width:100%;margin-top:10px" onclick="scrollToBooking()">✓ POND 완료 — 모의강의 예약하러 가기</button>`:''}
   </div>`;
 }
 
@@ -635,7 +635,7 @@ function renderBooking(d){
       ${overviewHtml}
       <div class="book-locked">
         <div class="ic">🔒</div>
-        <div><b style="color:var(--ink)">아직 예약할 수 없습니다.</b><br>모듈을 1개 이상 완료하면 예약 슬롯이 열립니다.</div>
+        <div><b style="color:var(--ink)">아직 예약할 수 없습니다.</b><br>POND 연습을 1개 이상 완료하면 예약 슬롯이 열립니다.</div>
       </div>
     </div>`;
   }
