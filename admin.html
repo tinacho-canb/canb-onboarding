@@ -263,7 +263,7 @@ function renderStatus(r){
   const total = r.total || 45;
   const scope = r.campus || (AUTH.campus || "");
   const rowsHtml = list.length ? list.map(t=>statusRow(t,total)).join("") :
-    `<tr><td colspan="7"><div class="empty" style="border:none;padding:26px">${esc(r.message||"표시할 강사가 없습니다.")}</div></td></tr>`;
+    `<tr><td colspan="8"><div class="empty" style="border:none;padding:26px">${esc(r.message||"표시할 강사가 없습니다.")}</div></td></tr>`;
 
   document.getElementById("app").innerHTML = `
   <div class="wrap">
@@ -286,6 +286,7 @@ function renderStatus(r){
             <th>평균점수</th>
             <th>예약</th>
             <th class="col-hide">마지막 갱신</th>
+            <th>상세</th>
           </tr>
         </thead>
         <tbody>${rowsHtml}</tbody>
@@ -294,6 +295,7 @@ function renderStatus(r){
     <p class="small" style="margin:12px 2px 0">
       · <b>이수 진도</b>는 영상·퀴즈·샘플·POND를 모두 끝낸 '완전 이수' 모듈 수입니다. 괄호 안은 퀴즈만 통과한 수입니다.<br>
       · <b>샘플 시청</b>은 퀴즈를 통과한 모듈에 등록된 샘플 영상 중 시청 완료한 수입니다. (시청 / 전체)<br>
+      · <b>상세</b> 버튼으로 강사별 45개 모듈 각각의 영상 시청·퀴즈 통과 여부를 확인할 수 있습니다.<br>
       · 분모는 현재 전체 ${total}개 고정이며, 추후 한국인/원어민 담당 과목별 기준으로 분리 예정입니다.<br>
       · 데이터는 조회 시점(${esc(r.generatedAt||"")}) 기준 실시간 집계입니다.
     </p>
@@ -312,6 +314,7 @@ function statusRow(t, total){
   const book = t.bookingEligible
     ? `<span class="chip chip-y">가능</span>`
     : `<span class="chip chip-n">대기</span>`;
+  const safeId = String(t.teacherId).replace(/[^a-zA-Z0-9_-]/g, "");
   return `
   <tr>
     <td><b>${esc(t.teacherName)}</b><br><span class="small">${esc(t.teacherId)}</span></td>
@@ -327,8 +330,50 @@ function statusRow(t, total){
     <td class="tnum">${Number(t.avgScore||0)}</td>
     <td>${book}</td>
     <td class="col-hide small">${esc(t.lastUpdate||"-")}</td>
+    <td><button class="refresh" style="padding:6px 12px;font-size:12px" onclick="toggleDetail('${esc(t.teacherId)}','${safeId}')">상세보기</button></td>
+  </tr>
+  <tr id="detail-${safeId}" style="display:none">
+    <td colspan="8" style="background:#f7f8fa;padding:14px 18px">
+      <div id="detailBody-${safeId}"><div class="small">클릭하면 불러옵니다.</div></div>
+    </td>
   </tr>`;
 }
+async function toggleDetail(teacherId, safeId){
+  const detailRow = document.getElementById('detail-'+safeId);
+  if(!detailRow) return;
+  const isOpen = detailRow.style.display !== 'none';
+  if(isOpen){ detailRow.style.display='none'; return; }
+  detailRow.style.display='table-row';
+  const body = document.getElementById('detailBody-'+safeId);
+  if(body.dataset.loaded==='1') return;
+  body.innerHTML = '<div class="small">불러오는 중…</div>';
+  try{
+    const r = await api({ action:'teacherModuleDetail', email:AUTH.email, password:AUTH.password, teacher: teacherId });
+    if(!r || !r.ok){ body.innerHTML = `<div class="small" style="color:#c0392b">${esc((r&&r.message)||'조회 실패')}</div>`; return; }
+    body.innerHTML = renderModuleDetailTable(r.modules||[]);
+    body.dataset.loaded = '1';
+  }catch(e){
+    body.innerHTML = `<div class="small" style="color:#c0392b">${esc(String(e.message||e))}</div>`;
+  }
+}
+
+function renderModuleDetailTable(modules){
+  if(!modules.length) return '<div class="small">모듈 데이터가 없습니다.</div>';
+  const rows = modules.map(m => `
+    <tr>
+      <td class="small">${esc(m.category||'')}</td>
+      <td>${esc(m.title||'')} <span class="small">(${esc(m.moduleId)})</span></td>
+      <td>${m.videoWatched ? '<span class="chip chip-y">시청</span>' : '<span class="chip chip-n">미시청</span>'}</td>
+      <td>${m.passed ? '<span class="chip chip-y">Pass</span>' : (m.score ? '<span class="chip chip-n">Fail</span>' : '<span class="small">-</span>')}</td>
+      <td class="tnum">${m.score||0}</td>
+      <td class="small">${esc(m.completedAt||'-')}</td>
+    </tr>`).join('');
+  return `
+    <table class="ttable" style="margin:0">
+      <thead><tr><th>카테고리</th><th>모듈명</th><th>영상</th><th>퀴즈</th><th>점수</th><th>완료시각</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}  
 
 /* ===== 예약/결과 기입 (super 전용) ===== */
 async function loadReservations(){
