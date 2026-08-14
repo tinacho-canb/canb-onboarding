@@ -64,6 +64,17 @@
   .logout{position:absolute; top:16px; right:18px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.18);
     color:#b9bbc0; font-size:12px; font-weight:600; padding:6px 12px; border-radius:8px}
   .logout:hover{background:rgba(255,255,255,.18); color:#fff}
+  .lang-switch{position:absolute; top:16px; right:98px; display:flex; align-items:center; gap:6px;
+    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.16); border-radius:8px; padding:4px 8px}
+  .lang-switch .lang-opt{background:none; color:#8d8f96; font-size:12px; font-weight:600; padding:2px 4px; border-radius:5px}
+  .lang-switch .lang-opt.on{color:#fff}
+  .lang-switch .lang-opt:hover{color:#fff}
+  .lang-switch .lang-sep{color:rgba(255,255,255,.25); font-size:11px}
+  @media (max-width:640px){
+    .lang-switch{position:static; margin-right:8px}
+    .logout{position:static}
+    header.top{padding-top:16px}
+  }
   .stats{display:flex; gap:14px; flex-wrap:wrap}
   .stat{background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12);
     border-radius:12px; padding:12px 18px; min-width:104px}
@@ -284,6 +295,116 @@ let currentName    = null;
 let DATA = null;
 const NO_SAMPLE_POND = ['MOD-004','MOD-006','MOD-007','MOD-009','MOD-026','MOD-034','MOD-036','MOD-044'];  
 
+/* ===== i18n (KO/EN) =====
+   범위: 대시보드 상시 노출 UI 텍스트(네비게이션/안내문/버튼/배지).
+   모듈·카테고리 제목은 DB 콘텐츠라 titleEn/categoryEn 백엔드 컬럼 추가 전까지 국문 고정. */
+let LANG = 'ko';
+const LANG_KEY = 'canb_lang';
+const I18N = {
+  ko: {
+    logout: '로그아웃',
+    statComplete: '모듈 완료', statAvg: '평균 점수', statBooking: '모의강의 예약',
+    bookingAvail: '가능', bookingLocked: '잠금',
+    progressGuide: pct => `전체 진행률 ${pct}% — POND 연습을 완료하면 모의강의 예약이 열립니다`,
+    moduleBlockTitle: '학습 모듈',
+    moduleFlow: '영상 → 퀴즈(70점 Pass) → 샘플수업 → POND 순서로 진행됩니다',
+    bookingBlockTitle: '모의강의 예약',
+    bookingSub: '선착순 · 예약 즉시 관리자에게 알림이 전송됩니다',
+    feedbackBlockTitle: '모의강의 피드백',
+    feedbackSub: '관리자가 남긴 평가 피드백입니다',
+    evalSuffix: n => `${n} 평가`,
+    catDone: (n,total) => `${n}/${total} 완료`,
+    stepVideo: '① 영상', stepQuiz: '② 퀴즈', stepSample: '③ 샘플수업', stepPond: '④ POND',
+    watchVideo: '영상 보기',
+    comingSoon: '준비중', preparing: '준비 중',
+    quizTake: '퀴즈 풀기', quizRetake: '다시 풀기',
+    quizPass: score => `Pass ${score}`, quizRetry: score => `재응시 ${score}`,
+    quizWait: '대기', na: '해당 없음',
+    lockAfterQuiz: '🔒 퀴즈 Pass 후',
+    complete: '완료 ✓', markComplete: '완료 표시',
+    sampleWatchedCount: (n,total) => `${n}/${total} 시청`,
+    moduleDoneRibbon: '모듈 완료',
+    sampleHead: (n,total,locked) => `샘플수업 영상 ${n}/${total} 시청${locked?' · 퀴즈 Pass 후 시청 가능':''}`,
+    watchDone: '시청 완료 ✓', markWatchDone: '시청 완료',
+    goBooking: '✓ POND 완료 — 모의강의 예약하러 가기',
+    bookedOverviewTitle: '이미 예약된 레벨·과목 (중복 시연 방지용)',
+    bookingLockedMsg1: '아직 예약할 수 없습니다.',
+    bookingLockedMsg2: 'POND 연습을 1개 이상 완료하면 예약 슬롯이 열립니다.',
+    bookingChangeNotice: '변경이 필요하면 관리자에게 문의하세요.',
+    cancelBooking: '예약 취소',
+    noMoreSubjects: '현재 추가로 예약 가능한 과목이 없습니다. POND 연습을 완료한 다른 과목이 있으면 여기에 표시됩니다.',
+    bookPerSubjectNotice: '과목별로 각각 예약할 수 있습니다. 원하는 시간을 선택하세요.',
+    moduleSelectLabel: '시연할 모듈', moduleSelectPlaceholder: '선택하세요',
+    periodInputLabel: '시연할 차시', periodInputPlaceholder: '예: 1차시, Reading 2차시',
+    remaining: (r,c) => `잔여 ${r} / ${c}`,
+    full: '마감', book: '예약',
+    placeAvail: (open,total) => `예약 가능 ${open}개 / 전체 ${total}개`,
+    showFull: n => `마감된 슬롯 ${n}개 보기`, hideFull: '마감된 슬롯 숨기기',
+    noSlots: '현재 등록된 슬롯이 없습니다.',
+  },
+  en: {
+    logout: 'Log out',
+    statComplete: 'Modules Complete', statAvg: 'Avg. Score', statBooking: 'Mock Class Booking',
+    bookingAvail: 'Open', bookingLocked: 'Locked',
+    progressGuide: pct => `Overall progress ${pct}% — complete POND practice to unlock mock class booking`,
+    moduleBlockTitle: 'Training Modules',
+    moduleFlow: 'Video → Quiz (Pass 70) → Sample Class → POND, in that order',
+    bookingBlockTitle: 'Mock Class Booking',
+    bookingSub: 'First-come, first-served · Admins are notified instantly on booking',
+    feedbackBlockTitle: 'Mock Class Feedback',
+    feedbackSub: 'Feedback left by your administrator',
+    evalSuffix: n => `Reviewed by ${n}`,
+    catDone: (n,total) => `${n}/${total} Complete`,
+    stepVideo: '① Video', stepQuiz: '② Quiz', stepSample: '③ Sample Class', stepPond: '④ POND',
+    watchVideo: 'Watch Video',
+    comingSoon: 'Coming soon', preparing: 'Preparing',
+    quizTake: 'Take Quiz', quizRetake: 'Retake Quiz',
+    quizPass: score => `Pass ${score}`, quizRetry: score => `Retry ${score}`,
+    quizWait: 'Pending', na: 'N/A',
+    lockAfterQuiz: '🔒 After Quiz Pass',
+    complete: 'Complete ✓', markComplete: 'Mark Complete',
+    sampleWatchedCount: (n,total) => `${n}/${total} watched`,
+    moduleDoneRibbon: 'Module Complete',
+    sampleHead: (n,total,locked) => `Sample class videos ${n}/${total} watched${locked?' · Available after passing quiz':''}`,
+    watchDone: 'Watched ✓', markWatchDone: 'Mark Watched',
+    goBooking: '✓ POND Complete — Go to Booking',
+    bookedOverviewTitle: 'Already booked levels/subjects (to prevent duplicate demos)',
+    bookingLockedMsg1: 'Booking is not available yet.',
+    bookingLockedMsg2: 'Complete at least 1 POND practice to unlock booking slots.',
+    bookingChangeNotice: 'Contact your administrator for changes.',
+    cancelBooking: 'Cancel Booking',
+    noMoreSubjects: 'No more subjects available for booking right now. Subjects with completed POND practice will appear here.',
+    bookPerSubjectNotice: 'You can book each subject separately. Choose a time below.',
+    moduleSelectLabel: 'Module to demonstrate', moduleSelectPlaceholder: 'Select',
+    periodInputLabel: 'Session to demonstrate', periodInputPlaceholder: 'e.g. Session 1, Reading Session 2',
+    remaining: (r,c) => `${r} / ${c} left`,
+    full: 'Full', book: 'Book',
+    placeAvail: (open,total) => `${open} available / ${total} total`,
+    showFull: n => `Show ${n} full slot(s)`, hideFull: 'Hide full slots',
+    noSlots: 'No slots registered yet.',
+  }
+};
+function tr(key, ...args){
+  const entry = (I18N[LANG] && I18N[LANG][key] !== undefined) ? I18N[LANG][key] : I18N.ko[key];
+  return typeof entry === 'function' ? entry(...args) : entry;
+}
+function detectLang(){
+  const urlLang = new URLSearchParams(location.search).get('lang');
+  if(urlLang === 'en' || urlLang === 'ko'){
+    LANG = urlLang;
+    try{ sessionStorage.setItem(LANG_KEY, LANG); }catch(e){}
+    return;
+  }
+  try{ const saved = sessionStorage.getItem(LANG_KEY); if(saved === 'en' || saved === 'ko') LANG = saved; }catch(e){}
+}
+function setLang(l){
+  if(l !== 'en' && l !== 'ko') return;
+  if(l === LANG) return;
+  LANG = l;
+  try{ sessionStorage.setItem(LANG_KEY, LANG); }catch(e){}
+  if(DATA) render(DATA); else if(document.body.classList.contains('authed')) loadDashboard();
+}
+
 /* 세션 유지: sessionStorage 사용, 막힌 환경(미리보기 등)에선 메모리로 폴백 */
 const SK = "canb_session";
 let _mem = null;
@@ -302,6 +423,7 @@ async function api(params){
 
 /* ===== 진입점 ===== */
 function init(){
+  detectLang(); /* URL의 &lang=en|ko 우선 감지, 없으면 세션에 저장된 값 사용 */
   /* 테스트용 우회: ?teacher=T005 가 붙어 있으면 로그인 건너뛰고 바로 대시보드
      (백엔드 login 액션 완성 전 화면 미리보기용. 실서비스에선 링크에서 제거) */
   const t = new URLSearchParams(location.search).get("teacher");
@@ -415,7 +537,12 @@ function render(d){
   const html = `
   <div class="wrap">
   <header class="top">
-    <button class="logout" onclick="logout()">로그아웃</button>
+    <div class="lang-switch" role="group" aria-label="Language / 언어 선택">
+      <button class="lang-opt${LANG==='ko'?' on':''}" onclick="setLang('ko')" ${LANG==='ko'?'aria-current="true"':''}>한국어</button>
+      <span class="lang-sep">|</span>
+      <button class="lang-opt${LANG==='en'?' on':''}" onclick="setLang('en')" ${LANG==='en'?'aria-current="true"':''}>English</button>
+    </div>
+    <button class="logout" onclick="logout()">${tr('logout')}</button>
     <div class="hello">
       <svg width="50" height="23" viewBox="0 0 3228 1514" xmlns="http://www.w3.org/2000/svg" fill="var(--magenta)" fill-rule="evenodd" aria-label="CANB" style="display:block;margin-bottom:8px">
         <path d="M2849.0,1512.5 L2823.5,1512.0 L2824.0,0.5 L2861.0,1.5 L2897.0,6.5 L2968.0,26.5 L3038.0,61.5 L3100.0,109.5 L3150.5,167.0 L3188.5,231.0 L3213.5,299.0 L3221.5,336.0 L3226.5,381.0 L3225.5,440.0 L3218.5,487.0 L3202.5,543.0 L3179.5,594.0 L3153.5,636.0 L3119.5,678.0 L3071.0,722.5 L3019.5,756.0 L3076.0,794.5 L3127.5,844.0 L3165.5,895.0 L3200.5,965.0 L3218.5,1026.0 L3226.5,1087.0 L3226.5,1132.0 L3222.5,1171.0 L3203.5,1246.0 L3180.5,1298.0 L3153.5,1342.0 L3118.5,1385.0 L3067.0,1431.5 L3014.0,1465.5 L2963.0,1488.5 L2903.0,1505.5 L2849.0,1512.5 Z"/>
@@ -427,25 +554,25 @@ function render(d){
       <h1>${esc(d.teacherName || currentName || currentTeacher)} 강사님 <small>의 학습 현황</small></h1>
     </div>
     <div class="stats">
-      <div class="stat"><div class="v">${completed}<span style="font-size:14px;color:#9a9ca2"> / ${total}</span></div><div class="k">모듈 완료</div></div>
-      <div class="stat"><div class="v">${avg}<span style="font-size:14px;color:#9a9ca2">${avg==="—"?"":"점"}</span></div><div class="k">평균 점수</div></div>
-      <div class="stat"><div class="v" style="color:${d.bookingEligible?'#7fe0c4':'#aeb9d6'}">${d.bookingEligible?'가능':'잠금'}</div><div class="k">모의강의 예약</div></div>
+      <div class="stat"><div class="v">${completed}<span style="font-size:14px;color:#9a9ca2"> / ${total}</span></div><div class="k">${tr('statComplete')}</div></div>
+      <div class="stat"><div class="v">${avg}<span style="font-size:14px;color:#9a9ca2">${avg==="—"?"":(LANG==='en'?"":"점")}</span></div><div class="k">${tr('statAvg')}</div></div>
+      <div class="stat"><div class="v" style="color:${d.bookingEligible?'#7fe0c4':'#aeb9d6'}">${d.bookingEligible?tr('bookingAvail'):tr('bookingLocked')}</div><div class="k">${tr('statBooking')}</div></div>
     </div>
     <div class="progress-line">
       <div class="bar"><i style="width:${pct}%"></i></div>
-      <div class="lab">전체 진행률 ${pct}% — POND 연습을 완료하면 모의강의 예약이 열립니다</div>
+      <div class="lab">${tr('progressGuide', pct)}</div>
     </div>
   </header>
 
   <section class="block">
-    <div class="block-head"><h2><span class="accent"></span>학습 모듈</h2>
-      <span class="sub">영상 → 퀴즈(70점 Pass) → 샘플수업 → POND 순서로 진행됩니다</span></div>
+    <div class="block-head"><h2><span class="accent"></span>${tr('moduleBlockTitle')}</h2>
+      <span class="sub">${tr('moduleFlow')}</span></div>
     ${cats.map((c,ci)=>renderCat(c,ci,progMap)).join("")}
   </section>
 
 <section class="block">
-    <div class="block-head"><h2><span class="accent"></span>모의강의 예약</h2>
-      <span class="sub">선착순 · 예약 즉시 관리자에게 알림이 전송됩니다</span></div>
+    <div class="block-head"><h2><span class="accent"></span>${tr('bookingBlockTitle')}</h2>
+      <span class="sub">${tr('bookingSub')}</span></div>
     ${renderBooking(d)}
   </section>
   ${renderMyFeedback(d)}
@@ -468,8 +595,8 @@ function renderMyFeedback(d){
   if(!list.length) return "";
   return `
   <section class="block">
-    <div class="block-head"><h2><span class="accent"></span>모의강의 피드백</h2>
-      <span class="sub">관리자가 남긴 평가 피드백입니다</span></div>
+    <div class="block-head"><h2><span class="accent"></span>${tr('feedbackBlockTitle')}</h2>
+      <span class="sub">${tr('feedbackSub')}</span></div>
     <div style="display:flex;flex-direction:column;gap:14px">
       ${list.map(f=>{
         const isRetry = f.result === '재평가';
@@ -492,7 +619,7 @@ function renderMyFeedback(d){
         </div>
         <div class="fb-foot">
           <span class="fb-avatar">${esc(initial)}</span>
-          <span class="small">${esc(displayName)} 평가</span>
+          <span class="small">${esc(tr('evalSuffix', displayName))}</span>
         </div>
       </div>`;
       }).join("")}
@@ -506,7 +633,7 @@ function renderCat(c, ci, progMap){
   return `
   <div class="cat${ci===0?' open':''}${catClass}">
     <div class="cat-head" onclick="this.parentNode.classList.toggle('open')">
-      <div class="cat-title">${esc(c.name)} <span class="cat-count">${doneN}/${c.items.length} 완료</span></div>
+      <div class="cat-title">${esc(c.name)} <span class="cat-count">${tr('catDone', doneN, c.items.length)}</span></div>
       <div class="cat-meta"><div class="mini-bar"><i style="width:${pct}%"></i></div><span class="chev">▸</span></div>
     </div>
     <div class="cat-body">${c.items.map(m=>renderModule(m, progMap[m.moduleId]||{})).join("")}</div>
@@ -526,8 +653,8 @@ function renderModule(m, p){
           ${m.target?`<span class="mod-target">${esc(m.target)}</span>`:''}
         </div>
       </div>
-      ${m.videoUrl?`<button class="step-btn b-open" style="width:100%" onclick="openVideoModal('${js(m.moduleId)}','${js(m.videoUrl)}','module','${js(m.title)}')">영상 보기</button>`
-                  :`<button class="step-btn b-lock" style="width:100%" disabled>준비중</button>`}
+      ${m.videoUrl?`<button class="step-btn b-open" style="width:100%" onclick="openVideoModal('${js(m.moduleId)}','${js(m.videoUrl)}','module','${js(m.title)}')">${tr('watchVideo')}</button>`
+                  :`<button class="step-btn b-lock" style="width:100%" disabled>${tr('comingSoon')}</button>`}
     </div>`;
   }
 
@@ -539,61 +666,61 @@ function renderModule(m, p){
   const sampleSatisfied = !hasSamples || sampleAllWatched;
 
   const stepVideo = `
-    <div class="step"><span class="lab">${p.videoWatched?'✓ ':''}① 영상</span>
-      ${m.videoUrl?`<button class="step-btn b-open" onclick="openVideoModal('${js(m.moduleId)}','${js(m.videoUrl)}','module','${js(m.title)}')">영상 보기</button>`
-                  :`<button class="step-btn b-lock" disabled>준비중</button>`}
+    <div class="step"><span class="lab">${p.videoWatched?'✓ ':''}${tr('stepVideo')}</span>
+      ${m.videoUrl?`<button class="step-btn b-open" onclick="openVideoModal('${js(m.moduleId)}','${js(m.videoUrl)}','module','${js(m.title)}')">${tr('watchVideo')}</button>`
+                  :`<button class="step-btn b-lock" disabled>${tr('comingSoon')}</button>`}
     </div>`;
 
   const isReference = !m.quizUrl && !hasSamples;
   const noSamplePond = isReference || NO_SAMPLE_POND.includes(m.moduleId);
 
   let quizState;
-  if(passed)            quizState=`<span class="pill p-pass">Pass ${num(p.score)}</span>`;
-  else if(p.quizResult) quizState=`<span class="pill p-retry">재응시 ${num(p.score)}</span>`;
-  else                  quizState=`<span class="pill p-wait">대기</span>`;
+  if(passed)            quizState=`<span class="pill p-pass">${tr('quizPass', num(p.score))}</span>`;
+  else if(p.quizResult) quizState=`<span class="pill p-retry">${tr('quizRetry', num(p.score))}</span>`;
+  else                  quizState=`<span class="pill p-wait">${tr('quizWait')}</span>`;
 
   const stepQuiz = isReference ? `
-    <div class="step"><span class="lab">② 퀴즈</span>
-      <span class="pill p-na">해당 없음</span>
+    <div class="step"><span class="lab">${tr('stepQuiz')}</span>
+      <span class="pill p-na">${tr('na')}</span>
     </div>` : `
-    <div class="step"><span class="lab">② 퀴즈</span>
-${m.quizUrl?`<button class="step-btn b-open" onclick="tryOpenQuiz('${js(m.moduleId)}','${js(m.quizUrl)}')">${passed?'다시 풀기':'퀴즈 풀기'}</button>`
-           :`<button class="step-btn b-lock" disabled>준비중</button>`}
+    <div class="step"><span class="lab">${tr('stepQuiz')}</span>
+${m.quizUrl?`<button class="step-btn b-open" onclick="tryOpenQuiz('${js(m.moduleId)}','${js(m.quizUrl)}')">${passed?tr('quizRetake'):tr('quizTake')}</button>`
+           :`<button class="step-btn b-lock" disabled>${tr('comingSoon')}</button>`}
       ${quizState}
     </div>`;
 
   const stepSample = noSamplePond ? `
-    <div class="step"><span class="lab">③ 샘플수업</span>
-      <span class="pill p-na">해당 없음</span>
+    <div class="step"><span class="lab">${tr('stepSample')}</span>
+      <span class="pill p-na">${tr('na')}</span>
     </div>` : `
-    <div class="step"><span class="lab">③ 샘플수업</span>
-      ${ !passed ? `<button class="step-btn b-lock" disabled>🔒 퀴즈 Pass 후</button>`
-        : !hasSamples ? `<button class="step-btn b-lock" disabled>준비 중</button>`
-        : sampleAllWatched ? `<button class="step-btn b-done" disabled>완료 ✓</button>`
-        : `<span class="pill p-wait">${watchedN}/${samples.length} 시청</span>` }
+    <div class="step"><span class="lab">${tr('stepSample')}</span>
+      ${ !passed ? `<button class="step-btn b-lock" disabled>${tr('lockAfterQuiz')}</button>`
+        : !hasSamples ? `<button class="step-btn b-lock" disabled>${tr('preparing')}</button>`
+        : sampleAllWatched ? `<button class="step-btn b-done" disabled>${tr('complete')}</button>`
+        : `<span class="pill p-wait">${tr('sampleWatchedCount', watchedN, samples.length)}</span>` }
     </div>`;
 
 const stepPond = noSamplePond ? `
-    <div class="step"><span class="lab">④ POND</span>
-      <span class="pill p-na">해당 없음</span>
+    <div class="step"><span class="lab">${tr('stepPond')}</span>
+      <span class="pill p-na">${tr('na')}</span>
     </div>` : `
-    <div class="step"><span class="lab">④ POND</span>
-      ${ pond?`<button class="step-btn b-done" disabled>완료 ✓</button>`
-        : passed?`<button class="step-btn b-do" onclick="doAction('pondComplete','${js(m.moduleId)}',this)">완료 표시</button>`
-                :`<button class="step-btn b-lock" disabled>🔒 퀴즈 Pass 후</button>` }
+    <div class="step"><span class="lab">${tr('stepPond')}</span>
+      ${ pond?`<button class="step-btn b-done" disabled>${tr('complete')}</button>`
+        : passed?`<button class="step-btn b-do" onclick="doAction('pondComplete','${js(m.moduleId)}',this)">${tr('markComplete')}</button>`
+                :`<button class="step-btn b-lock" disabled>${tr('lockAfterQuiz')}</button>` }
     </div>`;
 
   const sampleListHtml = hasSamples ? `
     <div class="sample-list">
-      <div class="sample-head">샘플수업 영상 ${watchedN}/${samples.length} 시청${ passed?'':' <span class="sl-lock">· 퀴즈 Pass 후 시청 가능</span>'}</div>
+      <div class="sample-head">${tr('sampleHead', watchedN, samples.length, !passed)}</div>
       ${samples.map(s=>`
         <div class="sample-row">
           <span class="sl-title">${esc(s.title)}</span>
           <span class="sl-btns">
-            <button class="step-btn b-open" onclick="openVideoModal('${js(s.sampleId)}','${js(s.url)}','sample','${js(s.title)}')" ${passed?'':'disabled'}>영상 보기</button>
+            <button class="step-btn b-open" onclick="openVideoModal('${js(s.sampleId)}','${js(s.url)}','sample','${js(s.title)}')" ${passed?'':'disabled'}>${tr('watchVideo')}</button>
             ${ s.watched
-                ? `<button class="step-btn b-done" disabled>시청 완료 ✓</button>`
-                : `<button class="step-btn b-do" onclick="trySampleWatched('${js(s.sampleId)}',this)" ${passed?'':'disabled'}>시청 완료</button>` }
+                ? `<button class="step-btn b-done" disabled>${tr('watchDone')}</button>`
+                : `<button class="step-btn b-do" onclick="trySampleWatched('${js(s.sampleId)}',this)" ${passed?'':'disabled'}>${tr('markWatchDone')}</button>` }
           </span>
         </div>`).join("")}
     </div>` : '';
@@ -606,11 +733,11 @@ return `
         <div class="mod-title">${esc(m.title)}</div>
         ${m.target?`<span class="mod-target">${esc(m.target)}</span>`:''}
       </div>
-      ${done?`<span class="ribbon">모듈 완료</span>`:''}
+      ${done?`<span class="ribbon">${tr('moduleDoneRibbon')}</span>`:''}
     </div>
     <div class="steps">${stepVideo}${stepQuiz}${stepSample}${stepPond}</div>
     ${sampleListHtml}
-    ${pond?`<button class="step-btn b-done" style="width:100%;margin-top:10px" onclick="scrollToBooking()">✓ POND 완료 — 모의강의 예약하러 가기</button>`:''}
+    ${pond?`<button class="step-btn b-done" style="width:100%;margin-top:10px" onclick="scrollToBooking()">${tr('goBooking')}</button>`:''}
   </div>`;
 }
 
@@ -618,7 +745,7 @@ function renderBooking(d){
   const overview = d.bookedModulesOverview || [];
   const overviewHtml = overview.length ? `
     <div style="background:#fbfcfe;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:14px">
-      <div style="font-size:12.5px;font-weight:700;color:var(--navy);margin-bottom:6px">이미 예약된 레벨·과목 (중복 시연 방지용)</div>
+      <div style="font-size:12.5px;font-weight:700;color:var(--navy);margin-bottom:6px">${tr('bookedOverviewTitle')}</div>
       <div style="display:flex;flex-direction:column;gap:5px">
         ${overview.map(o=>`
           <div style="font-size:12.5px;color:var(--ink);display:flex;gap:8px;flex-wrap:wrap">
@@ -635,7 +762,7 @@ function renderBooking(d){
       ${overviewHtml}
       <div class="book-locked">
         <div class="ic">🔒</div>
-        <div><b style="color:var(--ink)">아직 예약할 수 없습니다.</b><br>POND 연습을 1개 이상 완료하면 예약 슬롯이 열립니다.</div>
+        <div><b style="color:var(--ink)">${tr('bookingLockedMsg1')}</b><br>${tr('bookingLockedMsg2')}</div>
       </div>
     </div>`;
   }
@@ -650,8 +777,8 @@ function renderBooking(d){
         <div class="mybooking">
           <span class="ic">📅</span>
           <div>${esc(b.category||'')} · ${esc(b.moduleTitle||'')}${b.period?` · ${esc(b.period)}`:''} — <b>${esc(fmtSlotWhen(b.when))}</b>
-          <div style="font-size:12px;color:var(--muted);margin-top:3px">변경이 필요하면 관리자에게 문의하세요.</div>
-          ${pending?`<button class="step-btn" style="width:auto;margin-top:10px;padding:7px 14px;background:var(--red-bg);color:var(--red)" onclick="doCancelBooking('${js(b.reservationId)}',this)">예약 취소</button>`:''}
+          <div style="font-size:12px;color:var(--muted);margin-top:3px">${tr('bookingChangeNotice')}</div>
+          ${pending?`<button class="step-btn" style="width:auto;margin-top:10px;padding:7px 14px;background:var(--red-bg);color:var(--red)" onclick="doCancelBooking('${js(b.reservationId)}',this)">${tr('cancelBooking')}</button>`:''}
           </div>
         </div>`;
       }).join("")}
@@ -666,17 +793,17 @@ function renderBooking(d){
     const slotBtn=s=>{
       const isFull=(s.booked||0)>=(s.capacity||0);
       return `<div class="slot${isFull?' full':''}">
-        <div><div class="w">${esc(fmtSlotWhen(s.when))}</div><div class="c">잔여 ${Math.max(0,(s.capacity||0)-(s.booked||0))} / ${s.capacity||0}</div></div>
-        ${isFull?`<button disabled>마감</button>`:`<button onclick="doBook('${js(s.slotId)}',this)">예약</button>`}
+        <div><div class="w">${esc(fmtSlotWhen(s.when))}</div><div class="c">${tr('remaining', Math.max(0,(s.capacity||0)-(s.booked||0)), s.capacity||0)}</div></div>
+        ${isFull?`<button disabled>${tr('full')}</button>`:`<button onclick="doBook('${js(s.slotId)}',this)">${tr('book')}</button>`}
       </div>`;
     };
     return `<div class="place-group">
-      <h4>${esc(place)} <span class="n">· 예약 가능 ${open.length}개 / 전체 ${arr.length}개</span></h4>
+      <h4>${esc(place)} <span class="n">· ${tr('placeAvail', open.length, arr.length)}</span></h4>
       <div class="slots">${open.map(slotBtn).join("")}</div>
       ${full.length?`<button class="toggle-full" onclick="
           const el=document.getElementById('full-${gi}'); el.style.display=el.style.display==='grid'?'none':'grid';
-          this.textContent=el.style.display==='grid'?'마감된 슬롯 숨기기':'마감된 슬롯 ${full.length}개 보기';">
-          마감된 슬롯 ${full.length}개 보기</button>
+          this.textContent=el.style.display==='grid'?'${js(tr('hideFull'))}':'${js(tr('showFull', full.length))}';">
+          ${tr('showFull', full.length)}</button>
         <div class="slots" id="full-${gi}" style="display:none; margin-top:8px">${full.map(slotBtn).join("")}</div>`:``}
     </div>`;
   }).join("");
@@ -688,26 +815,26 @@ function renderBooking(d){
     return `<div class="book-card">
       ${overviewHtml}
       ${myBookingsHtml}
-      <div style="color:var(--muted);padding:10px 0">현재 추가로 예약 가능한 과목이 없습니다. POND 연습을 완료한 다른 과목이 있으면 여기에 표시됩니다.</div>
+      <div style="color:var(--muted);padding:10px 0">${tr('noMoreSubjects')}</div>
     </div>`;
   }
 
   return `<div class="book-card">
     ${overviewHtml}
     ${myBookingsHtml}
-    <div style="font-size:13px;color:var(--muted);margin-bottom:12px">과목별로 각각 예약할 수 있습니다. 원하는 시간을 선택하세요.</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:12px">${tr('bookPerSubjectNotice')}</div>
     <div class="field" style="max-width:320px;margin-bottom:14px">
-      <label style="display:block;font-size:12.5px;font-weight:600;color:var(--ink);margin-bottom:6px">시연할 모듈</label>
+      <label style="display:block;font-size:12.5px;font-weight:600;color:var(--ink);margin-bottom:6px">${tr('moduleSelectLabel')}</label>
       <select id="book-module-select" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:13.5px;font-family:inherit">
-        <option value="">선택하세요</option>
+        <option value="">${tr('moduleSelectPlaceholder')}</option>
         ${moduleOptions}
       </select>
     </div>
     <div class="field" style="max-width:320px;margin-bottom:14px">
-      <label style="display:block;font-size:12.5px;font-weight:600;color:var(--ink);margin-bottom:6px">시연할 차시</label>
-      <input id="book-period-input" type="text" placeholder="예: 1차시, Reading 2차시" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:13.5px;font-family:inherit" />
+      <label style="display:block;font-size:12.5px;font-weight:600;color:var(--ink);margin-bottom:6px">${tr('periodInputLabel')}</label>
+      <input id="book-period-input" type="text" placeholder="${esc(tr('periodInputPlaceholder'))}" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:13.5px;font-family:inherit" />
     </div>
-    ${groupHtml || '<div style="color:var(--muted);padding:10px 0">현재 등록된 슬롯이 없습니다.</div>'}
+    ${groupHtml || `<div style="color:var(--muted);padding:10px 0">${tr('noSlots')}</div>`}
   </div>`;
 }
 
