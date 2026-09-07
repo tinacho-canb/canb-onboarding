@@ -61,6 +61,14 @@
   .tab{background:var(--lock-bg); color:var(--ink); font-size:13px; font-weight:700; padding:9px 16px; border-radius:9px}
   .tab.active{background:var(--magenta); color:#fff}
 
+  /* 캠퍼스 서브탭 */
+  .subtabs{display:flex; flex-wrap:wrap; gap:6px; margin:16px 2px 0}
+  .subtab{background:#fff; border:1px solid var(--line); color:var(--ink); font-size:12.5px; font-weight:700; padding:7px 13px; border-radius:99px; white-space:nowrap}
+  .subtab .cnt{font-weight:600; color:var(--muted); margin-left:5px; font-variant-numeric:tabular-nums}
+  .subtab.zero{color:var(--lock)}
+  .subtab.active{background:var(--navy); border-color:var(--navy); color:#fff}
+  .subtab.active .cnt{color:#d8dee9}
+
   .bar{display:flex; align-items:center; justify-content:space-between; margin:24px 2px 12px; gap:10px; flex-wrap:wrap}
   .bar h2{margin:0; font-size:16px; color:var(--navy); font-weight:800}
   .bar .sub{font-size:12.5px; color:var(--muted)}
@@ -138,6 +146,18 @@ const RESULT_OPTIONS = ["우수", "양호", "보통", "재평가"];
 
 let AUTH = null;   // { email, password, name, role, campus }
 let VIEW = "status";   // super일 때 현재 탭: "status" | "results"
+
+/* ===== 캠퍼스 탭 (총괄 관리자 전용) =====
+   CAMPUS_LIST의 캠퍼스명은 Teachers 시트 '캠퍼스' 열 값과 글자까지 정확히 일치시킬 것.
+   여기에 적힌 캠퍼스는 소속 인원이 0명이어도 빈 탭으로 표시됨.
+   목록에 없는 캠퍼스가 데이터에 있으면 누락 방지를 위해 탭 맨 뒤에 자동으로 추가됨.
+   예) const CAMPUS_LIST = ["감일", "오창", "…"]; */
+const CAMPUS_LIST = [];   // ← 캠퍼스 10개 명칭을 여기에 입력
+const CAMPUS_ALL = "__ALL__";
+const CAMPUS_NONE = "__NONE__";
+let CAMPUS_TAB = CAMPUS_ALL;
+let CAMPUS_TABS_CACHE = [];
+let STATUS_DATA = null;
 const SK = "canb_admin_session";
 let _mem = null;
 function saveSession(s){ try{ sessionStorage.setItem(SK, JSON.stringify(s)); }catch(e){} _mem=s; }
@@ -258,20 +278,77 @@ async function loadStatus(){
   }
 }
 
+function normCampus(v){ return String(v==null?"":v).replace(/\s+/g,""); }
+
+/* 고정 목록 + (목록에 없는) 데이터상 캠퍼스 자동 보강 */
+function campusTabList(list){
+  const out = CAMPUS_LIST.map(c=>String(c).trim()).filter(Boolean);
+  list.forEach(t=>{
+    const raw = String(t.campus||"").trim();
+    if(!raw) return;
+    if(!out.some(x=>normCampus(x)===normCampus(raw))) out.push(raw);
+  });
+  return out;
+}
+function campusCount(list, campus){
+  const k = normCampus(campus);
+  return list.filter(t=>normCampus(t.campus)===k).length;
+}
+function selectCampusIdx(i){
+  if(i === -1) CAMPUS_TAB = CAMPUS_ALL;
+  else if(i === -2) CAMPUS_TAB = CAMPUS_NONE;
+  else CAMPUS_TAB = CAMPUS_TABS_CACHE[i] || CAMPUS_ALL;
+  if(STATUS_DATA) renderStatus(STATUS_DATA);
+}
+function campusSubtabs(list){
+  CAMPUS_TABS_CACHE = campusTabList(list);
+  const noneCnt = list.filter(t=>!normCampus(t.campus)).length;
+  const btn = (label, cnt, idx, active) =>
+    `<button class="subtab ${active?"active":""} ${cnt===0?"zero":""}" onclick="selectCampusIdx(${idx})">${esc(label)}<span class="cnt">${cnt}</span></button>`;
+  let html = btn("전체", list.length, -1, CAMPUS_TAB===CAMPUS_ALL);
+  html += CAMPUS_TABS_CACHE.map((c,i)=>
+    btn(c, campusCount(list,c), i, normCampus(CAMPUS_TAB)===normCampus(c) && CAMPUS_TAB!==CAMPUS_ALL && CAMPUS_TAB!==CAMPUS_NONE)
+  ).join("");
+  if(noneCnt > 0) html += btn("캠퍼스 미기재", noneCnt, -2, CAMPUS_TAB===CAMPUS_NONE);
+  return `<div class="subtabs">${html}</div>`;
+}
+
 function renderStatus(r){
+  STATUS_DATA = r;
   const list = r.teachers || [];
   const total = r.total || 45;
+  const isSuper = AUTH.role === "super";
   const scope = r.campus || (AUTH.campus || "");
-  const rowsHtml = list.length ? list.map(t=>statusRow(t,total)).join("") :
-    `<tr><td colspan="8"><div class="empty" style="border:none;padding:26px">${esc(r.message||"표시할 강사가 없습니다.")}</div></td></tr>`;
+
+  const subtabs = isSuper ? campusSubtabs(list) : "";
+  let shown = list, tabLabel = "전체";
+  if(isSuper && CAMPUS_TAB === CAMPUS_NONE){
+    shown = list.filter(t=>!normCampus(t.campus));
+    tabLabel = "캠퍼스 미기재";
+  }else if(isSuper && CAMPUS_TAB !== CAMPUS_ALL){
+    shown = list.filter(t=>normCampus(t.campus)===normCampus(CAMPUS_TAB));
+    tabLabel = String(CAMPUS_TAB).trim();
+  }
+
+  const emptyMsg = isSuper && CAMPUS_TAB !== CAMPUS_ALL
+    ? `${esc(tabLabel)} 캠퍼스에 등록된 강사·관리자가 없습니다.<br><span class="small">영상교육 계정 생성을 요청하지 않은 캠퍼스는 비어 있는 것이 정상입니다.</span>`
+    : esc(r.message||"표시할 강사가 없습니다.");
+  const rowsHtml = shown.length ? shown.map(t=>statusRow(t,total)).join("") :
+    `<tr><td colspan="8"><div class="empty" style="border:none;padding:26px">${emptyMsg}</div></td></tr>`;
+
+  const headScope = isSuper ? tabLabel : scope;
+  const countLine = isSuper
+    ? `표시 ${shown.length}명 / 전체 ${list.length}명 · 분모 ${total}개 기준 · 조회 ${esc(r.generatedAt||"")}`
+    : `전체 ${list.length}명 · 분모 ${total}개 기준 · 조회 ${esc(r.generatedAt||"")}`;
 
   document.getElementById("app").innerHTML = `
   <div class="wrap">
     ${chrome("status")}
+    ${subtabs}
     <div class="bar">
       <div>
-        <h2>강사 이수 현황 ${scope?`<span class="small">· ${esc(scope)}</span>`:""}</h2>
-        <span class="sub">전체 ${list.length}명 · 분모 ${total}개 기준 · 조회 ${esc(r.generatedAt||"")}</span>
+        <h2>강사 이수 현황 ${headScope?`<span class="small">· ${esc(headScope)}</span>`:""}</h2>
+        <span class="sub">${countLine}</span>
       </div>
       <button class="refresh" onclick="loadStatus()">새로고침</button>
     </div>
@@ -301,7 +378,6 @@ function renderStatus(r){
     </p>
   </div>`;
 }
-
 function statusRow(t, total){
   const complete = Number(t.complete||0);
   const passed = Number(t.passed||0);
