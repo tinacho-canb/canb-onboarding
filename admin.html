@@ -132,6 +132,34 @@
   .toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px); background:var(--ink); color:#fff; padding:12px 20px; border-radius:10px; font-size:13.5px; box-shadow:0 8px 30px rgba(0,0,0,.25); opacity:0; pointer-events:none; transition:.25s; z-index:60}
   .toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
   .toast.bad{background:var(--red)}
+
+  /* 예약 삭제 / 복원 */
+  .card.deleted{opacity:.75; border-left:4px solid var(--lock)}
+  .card.deleted .tname{color:var(--muted)}
+  .btn-del{background:#fff; border:1px solid var(--line); color:var(--red); font-size:12px; font-weight:700; padding:6px 12px; border-radius:8px}
+  .btn-del:hover{background:var(--red-bg); border-color:#f0c4cd}
+  .btn-restore{background:var(--lock-bg); color:var(--navy); font-size:12px; font-weight:700; padding:6px 12px; border-radius:8px}
+  .cardacts{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+  .delmeta{background:#f7f8fa; border-radius:9px; padding:9px 12px; font-size:12.5px; color:var(--muted); margin-top:10px; line-height:1.55}
+  .delmeta b{color:var(--ink)}
+  .sechead{display:flex; align-items:center; gap:10px; margin:28px 2px 12px}
+  .sechead h2{margin:0; font-size:15px; color:var(--muted); font-weight:800}
+
+  /* 확인 모달 */
+  .modal{position:fixed; inset:0; background:rgba(16,20,32,.45); display:flex; align-items:center; justify-content:center; z-index:70; padding:18px}
+  .modal-box{background:#fff; border-radius:14px; max-width:460px; width:100%; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  .modal-box h3{margin:0; font-size:16.5px; color:var(--navy); font-weight:800}
+  .modal-box .mlead{font-size:13px; color:var(--muted); margin-top:5px}
+  .mtarget{background:#f7f8fa; border-radius:9px; padding:11px 13px; font-size:13px; margin:14px 0 0; line-height:1.6}
+  .modal-box label.ml{display:block; font-size:12px; font-weight:700; color:var(--navy); margin:14px 0 5px}
+  .modal-box select, .modal-box input[type=text]{width:100%; border:1px solid var(--line); border-radius:9px; padding:9px 11px; font-size:13.5px; font-family:inherit; outline:none}
+  .modal-box select:focus, .modal-box input[type=text]:focus{border-color:var(--teal)}
+  .modal-warn{background:var(--red-bg); border:1px solid #f0c4cd; color:#9c2740; border-radius:9px; padding:11px 13px; font-size:12.5px; margin-top:14px; line-height:1.55}
+  .modal-warn .ack{display:flex; align-items:flex-start; gap:8px; margin-top:9px; font-weight:700}
+  .modal-act{display:flex; justify-content:flex-end; gap:8px; margin-top:18px}
+  .btn-ghost{background:var(--lock-bg); color:var(--ink); font-weight:700; font-size:13px; padding:9px 16px; border-radius:9px}
+  .btn-danger{background:var(--red); color:#fff; font-weight:700; font-size:13px; padding:9px 16px; border-radius:9px}
+  .btn-danger:hover{background:#c23a51}
   @media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
   :focus-visible{outline:2px solid var(--teal); outline-offset:2px}
 </style>
@@ -378,6 +406,7 @@ function renderStatus(r){
     </p>
   </div>`;
 }
+
 function statusRow(t, total){
   const complete = Number(t.complete||0);
   const passed = Number(t.passed||0);
@@ -456,7 +485,8 @@ async function loadReservations(){
   document.getElementById("app").innerHTML = `<div class="wrap">${chrome("results")}<div class="state"><div class="spinner"></div>예약 목록을 불러오는 중…</div></div>`;
   try{
     const [r, teacherOptions] = await Promise.all([
-      api({ action:"getReservations", email:AUTH.email, password:AUTH.password }),
+      api({ action:"getReservations", email:AUTH.email, password:AUTH.password,
+            includeDeleted: SHOW_DELETED ? "true" : "false" }),
       ensureTeacherOptions()
     ]);
     if(!r || !r.ok){
@@ -474,6 +504,11 @@ async function loadReservations(){
 function isPending(x){
   return !(x.feedbacks && x.feedbacks.length);
 }
+/* ===== 예약 삭제(소프트) ===== */
+const DELETE_REASONS = ["오예약 (강사 착오)", "예약대로 미진행", "테스트 데이터", "중복 등록", "기타"];
+let SHOW_DELETED = false;   // '삭제된 예약 보기' 토글
+let RES_CACHE = [];         // 현재 화면의 예약 원본 (모달에서 참조)
+
 let TEACHER_OPTIONS_CACHE = null;
 async function ensureTeacherOptions(){
   if(TEACHER_OPTIONS_CACHE) return TEACHER_OPTIONS_CACHE;
@@ -511,20 +546,31 @@ async function createManualEntry(btn){
 }
 
 function renderReservations(list, teacherOptions){
-  const pending = list.filter(isPending).length;
-  const cards = list.length ? list.map(renderCard).join("") :
+  RES_CACHE = list || [];
+  const active  = RES_CACHE.filter(x=>!x.deleted);
+  const deleted = RES_CACHE.filter(x=>x.deleted);
+  const pending = active.filter(isPending).length;
+  const cards = active.length ? active.map(renderCard).join("") :
     `<div class="empty">아직 예약된 모의강의가 없습니다.</div>`;
   const teacherOptsHtml = (teacherOptions||[])
     .map(t=>`<option value="${esc(t.id)}">${esc(t.name)} (${esc(t.id)}${t.campus?(' · '+esc(t.campus)):''})</option>`)
     .join("");
 
+  const deletedSection = SHOW_DELETED ? `
+    <div class="sechead">
+      <h2>삭제된 예약 ${deleted.length}건</h2>
+      <span class="small">복원하면 원래 목록으로 돌아갑니다.</span>
+    </div>
+    ${deleted.length ? deleted.map(renderCard).join("") : `<div class="empty">삭제된 예약이 없습니다.</div>`}` : "";
+
   document.getElementById("app").innerHTML = `
   <div class="wrap">
     ${chrome("results")}
     <div class="bar">
-      <div><h2>예약 목록</h2><span class="sub">미평가 ${pending}건 · 전체 ${list.length}건 (미평가가 위에 표시됩니다)</span></div>
-      <div style="display:flex;gap:8px">
+      <div><h2>예약 목록</h2><span class="sub">미평가 ${pending}건 · 전체 ${active.length}건 (미평가가 위에 표시됩니다)</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="refresh" onclick="toggleManualEntry()">+ 직접 등록</button>
+        <button class="refresh" onclick="toggleDeletedView()">${SHOW_DELETED ? "삭제된 예약 숨기기" : "삭제된 예약 보기"}</button>
         <button class="refresh" onclick="loadReservations()">새로고침</button>
       </div>
     </div>
@@ -558,20 +604,18 @@ function renderReservations(list, teacherOptions){
       </div>
     </div>
     ${cards}
+    ${deletedSection}
   </div>`;
 }
 
-function renderCard(x){
-  const rid = esc(x.reservationId);
-  const feedbacks = x.feedbacks || [];
-  const pending = feedbacks.length === 0;
-  const mine = feedbacks.find(function(f){ return f.isMine; });
-  const others = feedbacks.filter(function(f){ return !f.isMine; });
+function toggleDeletedView(){
+  SHOW_DELETED = !SHOW_DELETED;
+  loadReservations();
+}
 
-  const opts = ['<option value="">결과 선택</option>']
-    .concat(RESULT_OPTIONS.map(o=>`<option value="${o}"${mine && mine.result===o?' selected':''}>${o}</option>`)).join("");
-
-  const othersHtml = others.map(f => `
+/* 피드백 읽기 전용 뷰 (삭제된 카드 / 타 평가자 공용) */
+function fbView(f){
+  return `
     <div class="fb-view">
       <div class="fb-view-head">
         <b>${esc(f.evaluatorName||f.evaluatorEmail)}</b>
@@ -584,18 +628,53 @@ function renderCard(x){
         <div><span class="en">Action Plan</span>${esc(f.actionPlan||'-')}</div>
         <div><span class="en">Key Features</span>${esc(f.keyFeatures||'-')}</div>
       </div>
-    </div>`).join("");
+    </div>`;
+}
 
-  return `
-  <div class="card ${pending?'pending':'done'}">
+function renderCard(x){
+  const rid = esc(x.reservationId);
+  const feedbacks = x.feedbacks || [];
+  const pending = feedbacks.length === 0;
+  const isDeleted = !!x.deleted;
+  const mine = feedbacks.find(function(f){ return f.isMine; });
+  const others = feedbacks.filter(function(f){ return !f.isMine; });
+
+  const headHtml = `
     <div class="row1">
       <div>
         <div class="tname">${esc(x.teacherName)} <span style="font-size:12px;color:#9aa3b8;font-weight:500">(${esc(x.teacherId)})</span></div>
         <div class="meta">${esc(x.when)} · ${esc(x.place)} · 예약ID ${rid}</div>
         ${(x.category || x.moduleTitle || x.period) ? `<div class="meta" style="color:var(--navy);font-weight:600;margin-top:2px">${esc(x.category||'')} ${esc(x.moduleTitle||'')}${x.period?` · ${esc(x.period)}`:''}</div>` : ''}
       </div>
-      <span class="badge ${pending?'b-pending':'b-done'}">${pending?'미평가':feedbacks.length+'건 평가완료'}</span>
-    </div>
+      <div class="cardacts">
+        <span class="badge ${isDeleted ? 'b-pending' : (pending?'b-pending':'b-done')}">${isDeleted ? '삭제됨' : (pending?'미평가':feedbacks.length+'건 평가완료')}</span>
+        ${isDeleted
+          ? `<button class="btn-restore" onclick="restoreReservation('${rid}', this)">복원</button>`
+          : `<button class="btn-del" onclick="openDeleteModal('${rid}')">삭제</button>`}
+      </div>
+    </div>`;
+
+  /* 삭제된 카드: 읽기 전용 */
+  if(isDeleted){
+    return `
+    <div class="card deleted">
+      ${headHtml}
+      <div class="delmeta">
+        <b>삭제 사유</b> ${esc(x.deleteReason||'-')}${x.deleteNote?` · ${esc(x.deleteNote)}`:''}<br>
+        <b>삭제자</b> ${esc(x.deletedBy||'-')} · <b>삭제 시각</b> ${esc(x.deletedAt||'-')}<br>
+        강사 페이지에는 표시되지 않습니다. 평가 내용은 보존되어 있으며 복원 시 그대로 되살아납니다.
+      </div>
+      ${feedbacks.length ? `<div class="fb-others">${feedbacks.map(fbView).join("")}</div>` : ''}
+    </div>`;
+  }
+
+  const opts = ['<option value="">결과 선택</option>']
+    .concat(RESULT_OPTIONS.map(o=>`<option value="${o}"${mine && mine.result===o?' selected':''}>${o}</option>`)).join("");
+  const othersHtml = others.map(fbView).join("");
+
+  return `
+  <div class="card ${pending?'pending':'done'}">
+    ${headHtml}
     ${othersHtml ? `<div class="fb-others">${othersHtml}</div>` : ''}
     <div class="eform">
       <div class="frow">
@@ -618,7 +697,7 @@ function renderCard(x){
         <label>주요 특징<span class="en">Key Features</span></label>
         <input id="kf-${rid}" value="${esc(mine?mine.keyFeatures:'')}" placeholder="예) 에너지 중심 수업 / engagement 우수">
       </div>
-<div class="frow">
+      <div class="frow">
         <label>강사 페이지 공개</label>
         ${mine ? `
         <div style="display:flex;align-items:center;gap:10px">
@@ -634,6 +713,87 @@ function renderCard(x){
       </div>
     </div>
   </div>`;
+}
+
+/* ===== 삭제 확인 모달 ===== */
+function closeModal(){
+  const m = document.getElementById("modalLayer");
+  if(m) m.remove();
+}
+function openDeleteModal(rid){
+  const x = RES_CACHE.find(function(r){ return String(r.reservationId) === String(rid); });
+  if(!x){ toast("예약 정보를 찾지 못했습니다. 새로고침 후 다시 시도하세요.", true); return; }
+  const fbCnt = (x.feedbacks||[]).length;
+  const reasonOpts = DELETE_REASONS.map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join("");
+  const warn = fbCnt ? `
+    <div class="modal-warn">
+      <b>주의</b> 이 예약에는 이미 작성된 평가가 ${fbCnt}건 있습니다. 삭제하면 강사 페이지에서도 보이지 않게 됩니다.
+      (평가 내용 자체는 시트에 보존되며, 복원하면 그대로 되살아납니다.)
+      <label class="ack"><input type="checkbox" id="del-ack" style="width:auto;margin-top:2px">
+        <span>평가 ${fbCnt}건이 함께 숨겨짐을 확인했습니다.</span></label>
+    </div>` : "";
+
+  const layer = document.createElement("div");
+  layer.id = "modalLayer";
+  layer.className = "modal";
+  layer.innerHTML = `
+    <div class="modal-box" role="dialog" aria-modal="true">
+      <h3>예약 삭제</h3>
+      <div class="mlead">목록에서 제외되며, 시트 데이터는 '삭제' 상태로 보존됩니다.</div>
+      <div class="mtarget">
+        <b>${esc(x.teacherName)}</b> (${esc(x.teacherId)})<br>
+        ${esc(x.when||'')} · ${esc(x.place||'')}<br>
+        예약ID ${esc(x.reservationId)}
+      </div>
+      <label class="ml">삭제 사유 (필수)</label>
+      <select id="del-reason">${reasonOpts}</select>
+      <label class="ml">비고 (선택)</label>
+      <input type="text" id="del-note" placeholder="예: 강사 요청으로 일정 재조정">
+      ${warn}
+      <div class="modal-act">
+        <button class="btn-ghost" onclick="closeModal()">취소</button>
+        <button class="btn-danger" id="del-confirm" onclick="confirmDelete('${esc(x.reservationId)}', ${fbCnt}, this)">삭제</button>
+      </div>
+    </div>`;
+  layer.addEventListener("click", function(e){ if(e.target === layer) closeModal(); });
+  document.body.appendChild(layer);
+}
+
+async function confirmDelete(rid, fbCnt, btn){
+  const reason = document.getElementById("del-reason").value;
+  const note   = document.getElementById("del-note").value;
+  if(!reason){ toast("삭제 사유를 선택하세요.", true); return; }
+  if(fbCnt > 0){
+    const ack = document.getElementById("del-ack");
+    if(!ack || !ack.checked){ toast("평가가 함께 숨겨짐을 확인해 주세요.", true); return; }
+  }
+  btn.disabled = true; const t0 = btn.textContent; btn.textContent = "삭제 중…";
+  try{
+    const r = await api({ action:"deleteMockReservation", email:AUTH.email, password:AUTH.password,
+                          reservation: rid, reason, note, force: fbCnt>0 ? "true" : "false" });
+    if(!r || !r.ok){
+      if(r && /권한/.test(r.message||"")){ toast("권한이 없습니다. 다시 로그인하세요.", true); setTimeout(logout, 1200); return; }
+      toast((r&&r.message)||"삭제 실패", true); btn.disabled=false; btn.textContent=t0; return;
+    }
+    closeModal();
+    toast("삭제했습니다. '삭제된 예약 보기'에서 복원할 수 있습니다.");
+    await loadReservations();
+  }catch(e){
+    toast("삭제 중 오류가 발생했습니다.", true); btn.disabled=false; btn.textContent=t0; console.error(e);
+  }
+}
+
+async function restoreReservation(rid, btn){
+  if(!window.confirm("이 예약을 목록으로 복원할까요?")) return;
+  btn.disabled = true; const t0 = btn.textContent; btn.textContent = "복원 중…";
+  try{
+    const r = await api({ action:"restoreMockReservation", email:AUTH.email, password:AUTH.password, reservation: rid });
+    if(!r || !r.ok){ toast((r&&r.message)||"복원 실패", true); btn.disabled=false; btn.textContent=t0; return; }
+    toast("복원했습니다.");
+    await loadReservations();
+  }catch(e){
+    toast("복원 중 오류가 발생했습니다.", true); btn.disabled=false; btn.textContent=t0; console.error(e);
+  }
 }
 
 async function saveResult(rid, btn){
