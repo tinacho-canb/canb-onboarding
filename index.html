@@ -204,6 +204,18 @@
   .vmodal-player-wrap.playing .vmodal-playbtn, .vmodal-player-wrap.playing .vmodal-fsbtn{opacity:0; pointer-events:none}
   .vmodal-player-wrap.playing.show-controls .vmodal-playbtn, .vmodal-player-wrap.playing.show-controls .vmodal-fsbtn{opacity:1; pointer-events:auto}
   .vmodal-foot{padding:10px 18px; font-size:12.5px; color:var(--muted); background:#fbfcfe}
+  .vmodal-player-wrap.free .vmodal-shield,
+  .vmodal-player-wrap.free .vmodal-playbtn,
+  .vmodal-player-wrap.free .vmodal-fsbtn{display:none}
+  .vseek{display:flex; align-items:center; gap:10px; padding:9px 14px; background:#0f1116}
+  .vseek.hide{display:none}
+  .vseek button{background:rgba(255,255,255,.14); color:#fff; border-radius:8px; padding:5px 9px; font-size:12px; font-weight:700; min-width:46px}
+  .vseek button:disabled{opacity:.3; cursor:default}
+  .vseek-track{position:relative; flex:1; height:8px; border-radius:4px; background:rgba(255,255,255,.18); cursor:pointer}
+  .vseek-max{position:absolute; left:0; top:0; bottom:0; border-radius:4px; background:rgba(255,255,255,.34); width:0}
+  .vseek-cur{position:absolute; left:0; top:0; bottom:0; border-radius:4px; background:var(--teal); width:0}
+  .vseek-knob{position:absolute; top:50%; left:0; transform:translate(-50%,-50%); width:14px; height:14px; border-radius:50%; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.55)}
+  .vseek-time{font-size:11.5px; color:#c8cdd8; font-variant-numeric:tabular-nums; min-width:84px; text-align:right}
 
   /* ===== AI 멘토 (로그인 후에만 노출) ===== */
   #mentor-fab{position:fixed; right:22px; bottom:22px; width:58px; height:58px; border-radius:50%; background:linear-gradient(135deg,var(--teal),var(--navy)); color:#fff; font-size:24px; box-shadow:0 8px 24px rgba(20,39,92,.35); z-index:50; display:none; align-items:center; justify-content:center}
@@ -269,6 +281,16 @@
       <button class="vmodal-playbtn" id="vmodal-playbtn" onclick="toggleVideoPlay()">▶</button>
      
       <button class="vmodal-fsbtn" onclick="toggleVideoFullscreen()" aria-label="전체화면">⤢</button>
+      </div>
+      <div class="vseek" id="vseek">
+       <button type="button" id="vseek-back" onclick="seekBy(-10)">−10s</button>
+       <div class="vseek-track" id="vseek-track" onclick="seekFromTrack(event)">
+        <div class="vseek-max" id="vseek-max"></div>
+        <div class="vseek-cur" id="vseek-cur"></div>
+        <div class="vseek-knob" id="vseek-knob"></div>
+      </div>
+      <button type="button" id="vseek-fwd" onclick="seekBy(10)">+10s</button>
+      <span class="vseek-time" id="vseek-time">0:00 / 0:00</span>
     </div>
     <div class="vmodal-foot" id="vmodal-status">영상을 시청해 주세요 (70% 이상 시청 시 자동 잠금 해제)</div>
   </div>
@@ -315,7 +337,11 @@ const I18N = {
     evalSuffix: n => `${n} 평가`,
     catDone: (n,total) => `${n}/${total} 완료`,
     stepVideo: '① 영상', stepQuiz: '② 퀴즈', stepSample: '③ 샘플수업', stepPond: '④ POND',
-    watchVideo: '영상 보기',
+    watchVideo: '영상 보기', rewatchVideo: '영상 다시보기',
+    seekBack10: '−10초', seekFwd10: '+10초',
+    rewatchNote: '이미 시청을 완료한 영상입니다. 원하는 구간으로 자유롭게 이동할 수 있습니다.',
+    watchGuide: '영상을 시청해 주세요 (70% 이상 시청 시 자동 잠금 해제)',
+    watchThresholdMet: '시청 완료 조건을 채웠습니다. 창을 닫고 계속 진행하세요.',
     comingSoon: '준비중', preparing: '준비 중',
     quizTake: '퀴즈 풀기', quizRetake: '다시 풀기',
     quizPass: score => `Pass ${score}`, quizRetry: score => `재응시 ${score}`,
@@ -356,7 +382,11 @@ const I18N = {
     evalSuffix: n => `Reviewed by ${n}`,
     catDone: (n,total) => `${n}/${total} Complete`,
     stepVideo: '① Video', stepQuiz: '② Quiz', stepSample: '③ Sample Class', stepPond: '④ POND',
-    watchVideo: 'Watch Video',
+    watchVideo: 'Watch Video', rewatchVideo: 'Watch Again',
+    seekBack10: '−10s', seekFwd10: '+10s',
+    rewatchNote: 'You have already completed this video. You can jump to any part freely.',
+    watchGuide: 'Please watch the video (unlocks automatically at 70%)',
+    watchThresholdMet: 'Watch requirement met. Close this window and continue.',
     comingSoon: 'Coming soon', preparing: 'Preparing',
     quizTake: 'Take Quiz', quizRetake: 'Retake Quiz',
     quizPass: score => `Pass ${score}`, quizRetry: score => `Retry ${score}`,
@@ -653,7 +683,7 @@ function renderModule(m, p){
           ${m.target?`<span class="mod-target">${esc(m.target)}</span>`:''}
         </div>
       </div>
-      ${m.videoUrl?`<button class="step-btn b-open" style="width:100%" onclick="openVideoModal('${js(m.moduleId)}','${js(m.videoUrl)}','module','${js(m.title)}')">${tr('watchVideo')}</button>`
+      ${m.videoUrl?`<button class="step-btn b-open" style="width:100%" onclick="openVideoModal('${js(m.moduleId)}','${js(m.videoUrl)}','module','${js(m.title)}')">${isWatched(m.moduleId)?tr('rewatchVideo'):tr('watchVideo')}</button>`
                   :`<button class="step-btn b-lock" style="width:100%" disabled>${tr('comingSoon')}</button>`}
     </div>`;
   }
@@ -665,10 +695,12 @@ function renderModule(m, p){
   const sampleAllWatched = hasSamples && watchedN===samples.length;
   const sampleSatisfied = !hasSamples || sampleAllWatched;
 
-  const stepVideo = `
-    <div class="step"><span class="lab">${p.videoWatched?'✓ ':''}${tr('stepVideo')}</span>
-      ${m.videoUrl?`<button class="step-btn b-open" onclick="openVideoModal('${js(m.moduleId)}','${js(m.videoUrl)}','module','${js(m.title)}')">${tr('watchVideo')}</button>`
+    const vWatched = isWatched(m.moduleId);
+    const stepVideo = `
+     <div class="step"><span class="lab">${vWatched?'✓ ':''}${tr('stepVideo')}</span>
+      ${m.videoUrl?`<button class="step-btn b-open" onclick="openVideoModal('${js(m.moduleId)}','${js(m.videoUrl)}','module','${js(m.title)}')">${vWatched?tr('rewatchVideo'):tr('watchVideo')}</button>`
                   :`<button class="step-btn b-lock" disabled>${tr('comingSoon')}</button>`}
+      ${vWatched?`<span class="pill p-pass">${tr('watchDone')}</span>`:''}
     </div>`;
 
   const isReference = !m.quizUrl && !hasSamples;
@@ -717,7 +749,7 @@ const stepPond = noSamplePond ? `
         <div class="sample-row">
           <span class="sl-title">${esc(s.title)}</span>
           <span class="sl-btns">
-            <button class="step-btn b-open" onclick="openVideoModal('${js(s.sampleId)}','${js(s.url)}','sample','${js(s.title)}')" ${passed?'':'disabled'}>${tr('watchVideo')}</button>
+          <button class="step-btn b-open" onclick="openVideoModal('${js(s.sampleId)}','${js(s.url)}','sample','${js(s.title)}')" ${passed?'':'disabled'}>${(s.watched||isWatched(s.sampleId))?tr('rewatchVideo'):tr('watchVideo')}</button>
             ${ s.watched
                 ? `<button class="step-btn b-done" disabled>${tr('watchDone')}</button>`
                 : `<button class="step-btn b-do" onclick="trySampleWatched('${js(s.sampleId)}',this)" ${passed?'':'disabled'}>${tr('markWatchDone')}</button>` }
@@ -916,11 +948,37 @@ function scrollToBooking(){
   const el = document.querySelector('.book-card');
   if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
 }
+/* ===== 영상 플레이어 =====
+   1회차(guided): 커스텀 진행바 — 되감기 자유, 앞으로 감기는 '최대 시청 지점'까지만
+   재시청(free)  : YouTube 기본 컨트롤 전면 개방 (이수 판정 완료분이므로 제한 불필요) */
 let ytPlayer=null, ytCurrentKind=null, ytCurrentId=null, ytPollTimer=null, ctrlHideTimer=null;
+let ytFreeMode=false, ytPlayerMode=null, ytMaxWatched=0, ytDur=0, ytDirty=false;
+
 function extractYoutubeId(url){
   const m = String(url||'').match(/(?:youtu\.be\/|v=)([A-Za-z0-9_-]{6,})/);
   return m ? m[1] : '';
 }
+
+/* --- 시청 기록: 서버 값 우선, 로컬 폴백 --- */
+function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+function vKey(id){ return 'vw_'+currentTeacher+'_'+id; }
+function vMaxKey(id){ return 'vmax_'+currentTeacher+'_'+id; }
+function localWatched(id){ return lsGet(vKey(id))==='1'; }
+function serverWatched(id){
+  if(!DATA) return false;
+  const p = (DATA.progress||[]).find(x=>x.moduleId===id);
+  if(p && p.videoWatched) return true;
+  const byMod = DATA.samplesByModule || {};
+  for(const k in byMod){
+    const s = (byMod[k]||[]).find(x=>x.sampleId===id);
+    if(s && s.watched) return true;
+  }
+  return false;
+}
+function isWatched(id){ return serverWatched(id) || localWatched(id); }
+function videoWatchOk(id){ return isWatched(id); }
+
 function showControls(){
   const wrap = document.querySelector('.vmodal-player-wrap');
   if(!wrap) return;
@@ -930,15 +988,41 @@ function showControls(){
     ctrlHideTimer = setTimeout(()=>{ wrap.classList.remove('show-controls'); }, 2200);
   }
 }
+function bindControlHover(wrap){
+  if(wrap._hoverBound) return;
+  wrap._hoverBound = true;
+  wrap.addEventListener('mousemove', showControls);
+  wrap.addEventListener('touchstart', showControls, {passive:true});
+  wrap.addEventListener('click', showControls);
+}
+
 function openVideoModal(id, url, kind, title){
   const vid = extractYoutubeId(url);
   if(!vid){ toast('영상 링크를 확인할 수 없습니다.', true); return; }
   ytCurrentId = id; ytCurrentKind = kind;
-  document.getElementById('vmodal-title').textContent = title||'영상 시청';
-  document.getElementById('vmodal-status').textContent = '영상을 시청해 주세요 (70% 이상 시청 시 자동 잠금 해제)';
+  ytFreeMode  = isWatched(id);
+  ytMaxWatched = ytFreeMode ? 0 : (parseFloat(lsGet(vMaxKey(id))) || 0);
+  ytDur = 0;
+
+  document.getElementById('vmodal-title').textContent = title || '영상 시청';
+  document.getElementById('vmodal-status').textContent = ytFreeMode ? tr('rewatchNote') : tr('watchGuide');
   document.getElementById('video-modal').classList.add('open');
+
   const wrap = document.querySelector('.vmodal-player-wrap');
-  if(wrap){ wrap.classList.remove('playing'); wrap.classList.add('show-controls'); bindControlHover(wrap); }
+  if(wrap){
+    wrap.classList.remove('playing');
+    wrap.classList.add('show-controls');
+    wrap.classList.toggle('free', ytFreeMode);
+    bindControlHover(wrap);
+  }
+  const seek = document.getElementById('vseek');
+  if(seek){
+    seek.classList.toggle('hide', ytFreeMode);
+    document.getElementById('vseek-back').textContent = tr('seekBack10');
+    document.getElementById('vseek-fwd').textContent  = tr('seekFwd10');
+    updateSeekUI(0);
+  }
+
   if(window.YT && window.YT.Player){
     createYtPlayer(vid);
   } else {
@@ -949,20 +1033,35 @@ function openVideoModal(id, url, kind, title){
     }
   }
 }
-function bindControlHover(wrap){
-  if(wrap._hoverBound) return;
-  wrap._hoverBound = true;
-  wrap.addEventListener('mousemove', showControls);
-  wrap.addEventListener('touchstart', showControls, {passive:true});
-  wrap.addEventListener('click', showControls);
-}
+
+/* playerVars는 생성 후 변경 불가 → 모드가 다르면 destroy 후 재생성 */
 function createYtPlayer(vid){
-  if(ytPlayer){ try{ ytPlayer.loadVideoById(vid); }catch(e){} return; }
+  const wantMode = ytFreeMode ? 'free' : 'guided';
+  if(ytPlayer && ytPlayerMode === wantMode){
+    try{ ytPlayer.loadVideoById(vid); }catch(e){}
+    return;
+  }
+  if(ytPlayer){
+    try{ ytPlayer.destroy(); }catch(e){}
+    ytPlayer = null;
+  }
+  const host = document.querySelector('.vmodal-player-wrap');
+  if(host && !document.getElementById('yt-player')){
+    const d = document.createElement('div'); d.id = 'yt-player';
+    host.insertBefore(d, host.firstChild);
+  }
+  ytPlayerMode = wantMode;
   ytPlayer = new YT.Player('yt-player', {
     videoId: vid,
-    playerVars:{ controls:0, disablekb:1, modestbranding:1, rel:0, playsinline:1 },
-    events:{ onStateChange: onYtStateChange }
+    playerVars: ytFreeMode
+      ? { controls:1, disablekb:0, modestbranding:1, rel:0, playsinline:1 }
+      : { controls:0, disablekb:1, modestbranding:1, rel:0, playsinline:1 },
+    events:{ onStateChange: onYtStateChange, onReady: onYtReady }
   });
+}
+function onYtReady(){
+  try{ ytDur = ytPlayer.getDuration() || 0; }catch(e){}
+  updateSeekUI(0);
 }
 function toggleVideoPlay(){
   if(!ytPlayer) return;
@@ -987,11 +1086,8 @@ function onYtStateChange(e){
 function toggleVideoFullscreen(){
   const el = document.querySelector('.vmodal-player-wrap');
   if(!el) return;
-  if(document.fullscreenElement){
-    document.exitFullscreen();
-  } else if(el.requestFullscreen){
-    el.requestFullscreen();
-  }
+  if(document.fullscreenElement){ document.exitFullscreen(); }
+  else if(el.requestFullscreen){ el.requestFullscreen(); }
 }
 function startYtPoll(){
   clearInterval(ytPollTimer);
@@ -1000,26 +1096,80 @@ function startYtPoll(){
     try{
       const cur = ytPlayer.getCurrentTime();
       const dur = ytPlayer.getDuration();
-      if(dur>0) markWatchThreshold(cur/dur);
+      if(dur>0){
+        ytDur = dur;
+        if(!ytFreeMode && cur > ytMaxWatched) ytMaxWatched = cur;
+        updateSeekUI(cur);
+        markWatchThreshold(Math.max(cur, ytMaxWatched) / dur);
+      }
     }catch(e){}
-  }, 2000);
+  }, 500);
 }
+
+/* --- 커스텀 진행바 (1회차 전용) --- */
+function fmtTime(s){
+  s = Math.max(0, Math.floor(s||0));
+  return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0');
+}
+function updateSeekUI(cur){
+  if(ytFreeMode) return;
+  const $ = id => document.getElementById(id);
+  const dur = ytDur || 0;
+  const pc = dur>0 ? Math.min(100, cur/dur*100) : 0;
+  const pm = dur>0 ? Math.min(100, ytMaxWatched/dur*100) : 0;
+  if($('vseek-cur'))  $('vseek-cur').style.width = pc+'%';
+  if($('vseek-max'))  $('vseek-max').style.width = pm+'%';
+  if($('vseek-knob')) $('vseek-knob').style.left = pc+'%';
+  if($('vseek-time')) $('vseek-time').textContent = fmtTime(cur)+' / '+fmtTime(dur);
+  if($('vseek-fwd'))  $('vseek-fwd').disabled  = !(dur>0 && cur+10 <= ytMaxWatched+0.5);
+  if($('vseek-back')) $('vseek-back').disabled = !(cur > 0.5);
+}
+function seekTo(sec){
+  if(!ytPlayer) return;
+  let t = Math.max(0, sec);
+  if(!ytFreeMode) t = Math.min(t, ytMaxWatched);
+  try{ ytPlayer.seekTo(t, true); }catch(e){}
+  updateSeekUI(t);
+}
+function seekBy(delta){
+  if(!ytPlayer) return;
+  let cur = 0;
+  try{ cur = ytPlayer.getCurrentTime() || 0; }catch(e){}
+  seekTo(cur + delta);
+}
+function seekFromTrack(ev){
+  if(!ytPlayer || !(ytDur>0)) return;
+  const r = ev.currentTarget.getBoundingClientRect();
+  const ratio = Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width));
+  seekTo(ratio * ytDur);
+}
+
+/* --- 시청 완료 판정 + 서버 기록 --- */
 function markWatchThreshold(ratio){
-  if(ratio>=0.7 && ytCurrentId){
-    try{ sessionStorage.setItem('vok_'+currentTeacher+'_'+ytCurrentId, '1'); }catch(e){}
-    const st=document.getElementById('vmodal-status');
-    if(st) st.textContent='시청 완료 조건을 채웠습니다. 창을 닫고 계속 진행하세요.';
-  }
+  if(!(ratio >= 0.7) || !ytCurrentId) return;
+  const st = document.getElementById('vmodal-status');
+  if(st && !ytFreeMode) st.textContent = tr('watchThresholdMet');
+  if(localWatched(ytCurrentId)) return;
+  lsSet(vKey(ytCurrentId), '1');
+  ytDirty = true;
+  if(ytCurrentKind === 'module') reportVideoWatched(ytCurrentId);
 }
+async function reportVideoWatched(moduleId){
+  try{ await api({ action:'videoWatched', teacher: currentTeacher, module: moduleId }); }
+  catch(e){ /* 백엔드 미적용 상태에서도 로컬 기록으로 정상 동작 */ }
+}
+
 function closeVideoModal(){
   document.getElementById('video-modal').classList.remove('open');
   clearInterval(ytPollTimer);
   clearTimeout(ctrlHideTimer);
   if(ytPlayer){ try{ ytPlayer.pauseVideo(); }catch(e){} }
+  if(!ytFreeMode && ytCurrentId && ytMaxWatched > 0){
+    lsSet(vMaxKey(ytCurrentId), String(Math.floor(ytMaxWatched)));
+  }
+  if(ytDirty){ ytDirty = false; loadDashboard(); }
 }
-function videoWatchOk(id){
-  try{ return sessionStorage.getItem('vok_'+currentTeacher+'_'+id)==='1'; }catch(e){ return false; }
-}
+
 function tryOpenQuiz(moduleId, quizUrl){
   if(!videoWatchOk(moduleId)){ toast('영상 시청을 완료하세요.', true); return; }
   openLink(quizUrl);
