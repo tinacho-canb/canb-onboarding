@@ -919,17 +919,20 @@ function toggleMentor(){
   const el=document.getElementById("mentor"); el.classList.toggle("open");
   if(el.classList.contains("open")) document.getElementById("m-input").focus();
 }
+let chatPendingQ = "";   /* 되묻기 직전 질문 보관 */
 async function sendChat(){
   const inp=document.getElementById("m-input"); const text=inp.value.trim();
   if(!text) return;
   inp.value=""; pushMsg(text,"me"); const typing=pushTyping();
+  const sendText = chatPendingQ ? (text + " " + chatPendingQ) : text;
   try{
-    const r=await api({ action:"chat", message:text });
+    const r=await api({ action:"chat", message:sendText });
     typing.remove();
     const reply=(r && (r.reply||r.answer||r.text)) || (typeof r==="string"?r:"답변을 가져오지 못했습니다.");
+    chatPendingQ = /^어느 레벨인지/.test(String(reply)) ? sendText : "";
     const img=r && (r.imageUrl||r.image||r["이미지링크"]);
     pushMsg(reply,"bot",img);
-  }catch(e){ typing.remove(); pushMsg("연결에 문제가 있습니다. 잠시 후 다시 시도해 주세요.","bot"); console.error(e); }
+  }catch(e){ typing.remove(); chatPendingQ=""; pushMsg("연결에 문제가 있습니다. 잠시 후 다시 시도해 주세요.","bot"); console.error(e); }
 }
 function pushMsg(text,who,img){
   const b=document.getElementById("m-body"); const el=document.createElement("div");
