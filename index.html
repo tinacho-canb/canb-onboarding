@@ -260,10 +260,12 @@
     <button class="m-close" onclick="toggleMentor()" aria-label="닫기">✕</button>
   </div>
   <div class="m-body" id="m-body">
-    <div class="msg bot">안녕하세요! POND 사용법, R&R 가이드, 수업 준비 등 온보딩 관련해 궁금한 점을 평소 말하듯 물어보세요.</div>
+    <div class="msg bot">안녕하세요! 진도·과제는 레벨과 주차를 함께 적어주시면 바로 찾아드립니다.
+예) "옥타 2 그래머 3주차 진도", "헥사 1 week 1 day 1 과목"
+수업 흐름·교재·평가·POND 사용법도 물어보세요.</div>
   </div>
   <div class="m-foot">
-    <input id="m-input" placeholder="질문을 입력하세요" onkeydown="if(event.key==='Enter')sendChat()" />
+    <input id="m-input" placeholder="예: 옥타 2 그래머 3주차 진도" onkeydown="if(event.key==='Enter')sendChat()" />
     <button onclick="sendChat()">전송</button>
   </div>
 </div>
@@ -919,17 +921,23 @@ function toggleMentor(){
   const el=document.getElementById("mentor"); el.classList.toggle("open");
   if(el.classList.contains("open")) document.getElementById("m-input").focus();
 }
-let chatPendingQ = "";   /* 되묻기 직전 질문 보관 */
+let chatPendingQ = "";   /* 되묻기 대기 */
+let chatLastSylQ = "";   /* 직전 진도 질의 */
+const LEVEL_ONLY = /^(penta|hexa|hepta|octa|nona|deca|hendeca|펜타|헥사|헵타|옥타|노나|데카|헨데카)\s*(l\s*)?(s)?\s*[1-3]?$/i;
+
 async function sendChat(){
   const inp=document.getElementById("m-input"); const text=inp.value.trim();
   if(!text) return;
   inp.value=""; pushMsg(text,"me"); const typing=pushTyping();
-  const sendText = chatPendingQ ? (text + " " + chatPendingQ) : text;
+  let sendText = text;
+  if(chatPendingQ) sendText = text + " " + chatPendingQ;
+  else if(chatLastSylQ && LEVEL_ONLY.test(text)) sendText = text + " " + chatLastSylQ;
   try{
     const r=await api({ action:"chat", message:sendText });
     typing.remove();
     const reply=(r && (r.reply||r.answer||r.text)) || (typeof r==="string"?r:"답변을 가져오지 못했습니다.");
     chatPendingQ = /^어느 레벨인지/.test(String(reply)) ? sendText : "";
+    if(String(reply).indexOf("📘") === 0) chatLastSylQ = sendText;
     const img=r && (r.imageUrl||r.image||r["이미지링크"]);
     pushMsg(reply,"bot",img);
   }catch(e){ typing.remove(); chatPendingQ=""; pushMsg("연결에 문제가 있습니다. 잠시 후 다시 시도해 주세요.","bot"); console.error(e); }
