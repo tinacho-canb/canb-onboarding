@@ -932,15 +932,22 @@ async function sendChat(){
   let sendText = text;
   if(chatPendingQ) sendText = text + " " + chatPendingQ;
   else if(chatLastSylQ && LEVEL_ONLY.test(text)) sendText = text + " " + chatLastSylQ;
-  try{
-    const r=await api({ action:"chat", message:sendText });
-    typing.remove();
-    const reply=(r && (r.reply||r.answer||r.text)) || (typeof r==="string"?r:"답변을 가져오지 못했습니다.");
-    chatPendingQ = /^어느 레벨인지/.test(String(reply)) ? sendText : "";
-    if(String(reply).indexOf("📘") === 0) chatLastSylQ = sendText;
-    const img=r && (r.imageUrl||r.image||r["이미지링크"]);
-    pushMsg(reply,"bot",img);
-  }catch(e){ typing.remove(); chatPendingQ=""; pushMsg("연결에 문제가 있습니다. 잠시 후 다시 시도해 주세요.","bot"); console.error(e); }
+  let r=null, lastErr=null;
+  for(let attempt=0; attempt<2; attempt++){
+    try{ r = await api({ action:"chat", message:sendText }); lastErr=null; break; }
+    catch(e){ lastErr=e; if(attempt===0) await new Promise(s=>setTimeout(s,1200)); }
+  }
+  typing.remove();
+  if(lastErr){
+    chatPendingQ="";
+    pushMsg("연결에 문제가 있습니다. 잠시 후 다시 시도해 주세요.","bot");
+    console.error(lastErr); return;
+  }
+  const reply=(r && (r.reply||r.answer||r.text)) || (typeof r==="string"?r:"답변을 가져오지 못했습니다.");
+  chatPendingQ = /^어느 레벨인지/.test(String(reply)) ? sendText : "";
+  if(String(reply).indexOf("📘") === 0) chatLastSylQ = sendText;
+  const img=r && (r.imageUrl||r.image||r["이미지링크"]);
+  pushMsg(reply,"bot",img);
 }
 function pushMsg(text,who,img){
   const b=document.getElementById("m-body"); const el=document.createElement("div");
