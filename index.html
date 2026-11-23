@@ -516,7 +516,7 @@ async function handleLogin(){
   btn.disabled=true; btn.textContent="확인 중…";
   try{
     const r = await api({ action:"login", email, password:pw });
-    if(r && r.ok){
+   if(r && r.ok && r.teacher){
       saveSession({ teacher:r.teacher, name:r.teacherName });
       enter(r.teacher, r.teacherName);
     }else{
