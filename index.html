@@ -331,14 +331,14 @@ const I18N = {
     bookingAvail: '가능', bookingLocked: '잠금',
     progressGuide: pct => `전체 진행률 ${pct}% — POND 연습을 완료하면 모의강의 예약이 열립니다`,
     moduleBlockTitle: '학습 모듈',
-    moduleFlow: '영상 → 퀴즈(70점 Pass) → 샘플수업 → POND 순서로 진행됩니다',
+    moduleFlow: '영상 → 퀴즈(70점 Pass) → POND 순서로 진행됩니다 (샘플수업은 선택)',
     bookingBlockTitle: '모의강의 예약',
     bookingSub: '선착순 · 예약 즉시 관리자에게 알림이 전송됩니다',
     feedbackBlockTitle: '모의강의 피드백',
     feedbackSub: '관리자가 남긴 평가 피드백입니다',
     evalSuffix: n => `${n} 평가`,
     catDone: (n,total) => `${n}/${total} 완료`,
-    stepVideo: '① 영상', stepQuiz: '② 퀴즈', stepSample: '③ 샘플수업', stepPond: '④ POND',
+    stepVideo: '① 영상', stepQuiz: '② 퀴즈', stepSample: '③ 샘플(선택)', stepPond: '④ POND',
     watchVideo: '영상 보기', rewatchVideo: '영상 다시보기',
     seekBack10: '−10초', seekFwd10: '+10초',
     rewatchNote: '이미 시청을 완료한 영상입니다. 원하는 구간으로 자유롭게 이동할 수 있습니다.',
@@ -352,7 +352,7 @@ const I18N = {
     complete: '완료 ✓', markComplete: '완료 표시',
     sampleWatchedCount: (n,total) => `${n}/${total} 시청`,
     moduleDoneRibbon: '모듈 완료',
-    sampleHead: (n,total,locked) => `샘플수업 영상 ${n}/${total} 시청${locked?' · 퀴즈 Pass 후 시청 가능':''}`,
+    sampleHead: (n,total,locked) => `샘플수업 영상(선택) ${n}/${total} 시청${locked?' · 퀴즈 Pass 후 시청 가능':''}`,
     watchDone: '시청 완료 ✓', markWatchDone: '시청 완료',
     goBooking: '✓ POND 완료 — 모의강의 예약하러 가기',
     bookedOverviewTitle: '이미 예약된 레벨·과목 (중복 시연 방지용)',
@@ -376,14 +376,14 @@ const I18N = {
     bookingAvail: 'Open', bookingLocked: 'Locked',
     progressGuide: pct => `Overall progress ${pct}% — complete POND practice to unlock mock class booking`,
     moduleBlockTitle: 'Training Modules',
-    moduleFlow: 'Video → Quiz (Pass 70) → Sample Class → POND, in that order',
+    moduleFlow: 'Video → Quiz (Pass 70) → POND, in that order (Sample Class optional)',
     bookingBlockTitle: 'Mock Class Booking',
     bookingSub: 'First-come, first-served · Admins are notified instantly on booking',
     feedbackBlockTitle: 'Mock Class Feedback',
     feedbackSub: 'Feedback left by your administrator',
     evalSuffix: n => `Reviewed by ${n}`,
     catDone: (n,total) => `${n}/${total} Complete`,
-    stepVideo: '① Video', stepQuiz: '② Quiz', stepSample: '③ Sample Class', stepPond: '④ POND',
+    stepVideo: '① Video', stepQuiz: '② Quiz', stepSample: '③ Sample (opt.)', stepPond: '④ POND',
     watchVideo: 'Watch Video', rewatchVideo: 'Watch Again',
     seekBack10: '−10s', seekFwd10: '+10s',
     rewatchNote: 'You have already completed this video. You can jump to any part freely.',
@@ -397,7 +397,7 @@ const I18N = {
     complete: 'Complete ✓', markComplete: 'Mark Complete',
     sampleWatchedCount: (n,total) => `${n}/${total} watched`,
     moduleDoneRibbon: 'Module Complete',
-    sampleHead: (n,total,locked) => `Sample class videos ${n}/${total} watched${locked?' · Available after passing quiz':''}`,
+    sampleHead: (n,total,locked) => `Sample class videos (optional) ${n}/${total} watched${locked?' · Available after passing quiz':''}`,
     watchDone: 'Watched ✓', markWatchDone: 'Mark Watched',
     goBooking: '✓ POND Complete — Go to Booking',
     bookedOverviewTitle: 'Already booked levels/subjects (to prevent duplicate demos)',
@@ -888,7 +888,7 @@ async function doSampleWatched(sampleId, btn){
   try{
     const r=await api({ action:"sampleWatched", teacher:currentTeacher, sample:sampleId });
     if(r && r.error){ toast(r.error,true); setBusy(btn,false); return; }
-    if(r && r.allWatched){ toast("샘플수업을 모두 시청했습니다. 이제 POND를 진행하세요."); }
+    if(r && r.allWatched){ toast("샘플수업을 모두 시청했습니다."); }
     else { toast("시청 완료로 표시했습니다. ("+(r.watchedCount||0)+"/"+(r.totalSamples||0)+")"); }
     await loadDashboard();
   }catch(e){ toast("처리 중 오류가 발생했습니다.",true); setBusy(btn,false); console.error(e); }
